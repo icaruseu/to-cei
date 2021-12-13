@@ -31,7 +31,7 @@ class Charter:
         )
 
     def to_string(self) -> str:
-        return etree.tostring(self.__build(), encoding="unicode", pretty_print=True)
+        return etree.tostring(self.__root, encoding="unicode", pretty_print=True)
 
     def to_xml(self) -> etree.Element:
         return self.__root
