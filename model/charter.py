@@ -1,8 +1,6 @@
 from lxml import etree
 from lxml.builder import ElementMaker
 
-CEI_XSD_URL = "https://www.monasterium.net/mom/resource/?atomid=tag:www.monasterium.net,2011:/mom/resource/xsd/cei"
-
 CEI_NS = "http://www.monasterium.net/NS/cei"
 CEI = ElementMaker(namespace=CEI_NS, nsmap={None: CEI_NS})
 
@@ -32,8 +30,8 @@ class Charter:
             type="charter",
         )
 
-    def to_xml(self) -> etree.Element:
-        return self.__root
-
     def to_string(self) -> str:
         return etree.tostring(self.__build(), encoding="unicode", pretty_print=True)
+
+    def to_xml(self) -> etree.Element:
+        return self.__root
