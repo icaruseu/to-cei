@@ -1,3 +1,5 @@
+from typing import List
+
 from lxml import etree
 from lxml.builder import ElementMaker
 
@@ -6,32 +8,87 @@ CEI = ElementMaker(namespace=CEI_NS, nsmap={None: CEI_NS})
 
 
 class Charter:
-    id: str
-    __root: etree.Element
+    _abstract_bibls: List[str]
+    _id: str
+    _transcription_bibls: List[str]
 
-    def __init__(self, id: str):
+    def __init__(
+        self,
+        id: str,
+        abstract_bibls: str | List[str] = [],
+        transcription_bibls: str | List[str] = [],
+    ):
+        self.abstract_bibls = abstract_bibls
         self.id = id
-        self.__root = self.__build()
+        self.transcription_bibls = transcription_bibls
 
-    def __build(self) -> etree.Element:
-        return self.__create_cei_text()
+    # --------------------------------------------------------------------#
+    #                             Properties                             #
+    # --------------------------------------------------------------------#
 
-    def __create_cei_body(self) -> etree.Element:
-        return CEI.body(CEI.idno(self.id, id=self.id))
+    @property
+    def abstract_bibls(self):
+        return self._abstract_bibls
 
-    def __create_cei_front(self) -> etree.Element:
-        return CEI.front()
+    @abstract_bibls.setter
+    def abstract_bibls(self, value: str | List[str]):
+        self._abstract_bibls = value if isinstance(value, List) else [value]
 
-    def __create_cei_text(self) -> etree.Element:
+    @property
+    def id(self):
+        return self._id
+
+    @id.setter
+    def id(self, value: str):
+        self._id = value
+
+    @property
+    def transcription_bibls(self):
+        return self._transcription_bibls
+
+    @transcription_bibls.setter
+    def transcription_bibls(self, value: str | List[str]):
+        self._transcription_bibls = value if isinstance(value, List) else [value]
+
+    # --------------------------------------------------------------------#
+    #                          Private methods                           #
+    # --------------------------------------------------------------------#
+
+    def _build(self) -> etree.Element:
+        return self._create_cei_text()
+
+    def _create_cei_body(self) -> etree.Element:
+        return CEI.body(CEI.idno(self._id, id=self._id))
+
+    def _create_cei_front(self) -> etree.Element:
+        childs = []
+        if self.abstract_bibls:
+            childs.append(
+                CEI.sourceDescRegest(*[CEI.bibl(bibl) for bibl in self.abstract_bibls])
+            )
+        if self.transcription_bibls:
+            childs.append(
+                CEI.sourceDescVolltext(
+                    *[CEI.bibl(bibl) for bibl in self.transcription_bibls]
+                )
+            )
+        source_desc = CEI.sourceDesc(*childs) if childs else None
+        return CEI.front(source_desc)
+
+    def _create_cei_text(self) -> etree.Element:
         return CEI.text(
-            self.__create_cei_front(),
-            self.__create_cei_body(),
-            id=self.id,
+            self._create_cei_front(),
+            self._create_cei_body(),
+            id=self._id,
             type="charter",
         )
 
+    # --------------------------------------------------------------------#
+    #                           Public methods                           #
+    # --------------------------------------------------------------------#
+
     def to_string(self) -> str:
-        return etree.tostring(self.__root, encoding="unicode", pretty_print=True)
+        return etree.tostring(self._build(), encoding="unicode", pretty_print=True)
 
     def to_xml(self) -> etree.Element:
-        return self.__root
+        return self._build()
