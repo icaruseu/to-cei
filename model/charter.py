@@ -57,6 +57,9 @@ class Charter:
     def _build(self) -> etree.Element:
         return self._create_cei_text()
 
+    def _create_cei_back(self) -> etree.Element:
+        return CEI.back()
+
     def _create_cei_body(self) -> etree.Element:
         return CEI.body(CEI.idno(self._id, id=self._id))
 
@@ -72,13 +75,17 @@ class Charter:
                     *[CEI.bibl(bibl) for bibl in self.transcription_bibls]
                 )
             )
-        source_desc = CEI.sourceDesc(*childs) if childs else None
-        return CEI.front(source_desc)
+        if childs:
+            source_desc = CEI.sourceDesc(*childs)
+            return CEI.front(source_desc)
+        else:
+            return CEI.front()
 
     def _create_cei_text(self) -> etree.Element:
         return CEI.text(
             self._create_cei_front(),
             self._create_cei_body(),
+            self._create_cei_back(),
             id=self._id,
             type="charter",
         )
