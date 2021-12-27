@@ -50,7 +50,7 @@ class Charter:
 
         Parameters:
         ----------
-        id_text: The human readable id of the charter. If id_norm is not present, id_text will be used in a normalized form.
+        id_text: The human readable id of the charter. If id_norm is not present, id_text will be used in a normalized form. If it is missing or empty, an exception will be raised.
 
         abstract: The abstract either as a simple text or a complete cei:abstract etree._Element.
 
