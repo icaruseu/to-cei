@@ -1,22 +1,63 @@
-from typing import List
+from typing import Any, List
 
 import pytest
 from lxml import etree
 
-from model.charter import CEI_NS, Charter
+from model.charter import (CEI, CEI_NS, CHARTER_NSS, Charter,
+                           CharterContentException, join, ln, ns)
 from model.validator import Validator
+
+# --------------------------------------------------------------------#
+#                          Helper functions                          #
+# --------------------------------------------------------------------#
+
+
+def _e(value: Any) -> List[etree._Element]:
+    """Makes sure that the provided value is a List of etree._Elements."""
+    if not isinstance(value, List):
+        raise Exception("Not a list")
+    list: List[etree._Element] = value
+    return list
+
+
+def _xp(charter: Charter, xpath: str) -> List[etree._Element]:
+    """Evaluates an xpath on the charters xml content."""
+    return _e(charter.to_xml().xpath(xpath, namespaces=CHARTER_NSS))
+
+
+def _xps(charter: Charter, xpath: str) -> etree._Element:
+    """Evaluates an xpath on the charters xml content, makes sure that it only has a single element and returns the element."""
+    list = _xp(charter, xpath)
+    assert len(list) == 1
+    return list[0]
+
+
+# --------------------------------------------------------------------#
+#                               Tests                                #
+# --------------------------------------------------------------------#
+
+
+def test_gets_correct_local_name():
+    assert ln(CEI.text()) == "text"
+
+
+def test_gets_correct_namespace():
+    assert ns(CEI.text()) == CEI_NS
+
+
+def test_joins_correctly():
+    joined = join(CEI.text(), None, CEI.persName(), None)
+    assert len(joined) == 2
+    assert etree.tostring(joined[0]) == etree.tostring(CEI.text())
+    assert etree.tostring(joined[1]) == etree.tostring(CEI.persName())
 
 
 def test_has_correct_base_structure():
-    charter_xml = Charter(id_text="1").to_xml()
-    direct_children = charter_xml.xpath(
-        "/cei:text/child::*", namespaces={"cei": CEI_NS}
-    )
-    assert isinstance(direct_children, List)
+    direct_children = _xp(Charter(id_text="1"), "/cei:text/child::*")
     assert len(direct_children) == 3
-    assert etree.QName(direct_children[0].tag).localname == "front"
-    assert etree.QName(direct_children[1].tag).localname == "body"
-    assert etree.QName(direct_children[2].tag).localname == "back"
+    assert ln(direct_children[0]) == "front"
+    assert ln(direct_children[1]) == "body"
+    assert ln(direct_children[2]) == "back"
 
 
 def test_has_correct_abstract_bibl():
@@ -26,26 +67,19 @@ def test_has_correct_abstract_bibl():
         abstract_bibls=bibl_text,
     )
     assert isinstance(charter.abstract_bibls, List)
-    bibls = charter.to_xml().xpath(
-        "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescRegest/*",
-        namespaces={"cei": CEI_NS},
-    )
-    assert isinstance(bibls, List)
-    assert len(bibls) == 1
-    assert bibls[0].text == bibl_text
+    bibl = _xps(charter, "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescRegest/*")
+    assert bibl.text == bibl_text
 
 
 def test_has_correct_abstract_bibls():
     bibl_texts = ["Bibl a", "Bibl b"]
-    charter = Charter(
-        id_text="1",
-        abstract_bibls=bibl_texts,
-    ).to_xml()
-    bibls = charter.xpath(
+    bibls = _xp(
+        Charter(
+            id_text="1",
+            abstract_bibls=bibl_texts,
+        ),
         "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescRegest/*",
-        namespaces={"cei": CEI_NS},
     )
-    assert isinstance(bibls, List)
     assert len(bibls) == 2
     assert bibls[0].text == bibl_texts[0]
     assert bibls[1].text == bibl_texts[1]
@@ -57,12 +91,9 @@ def test_has_correct_id():
     charter = Charter(id_text=id_text)
     assert charter.id_text == id_text
     assert charter.id_norm == id_norm
-    charter_xml = charter.to_xml()
-    idno = charter_xml.xpath("/cei:text/cei:body/cei:idno", namespaces={"cei": CEI_NS})
-    assert isinstance(idno, List)
-    assert len(idno) == 1
-    assert idno[0].get("id") == id_norm
-    assert idno[0].text == id_text
+    idno = _xps(charter, "/cei:text/cei:body/cei:idno")
+    assert idno.get("id") == id_norm
+    assert idno.text == id_text
 
 
 def test_has_correct_id_norm():
@@ -71,17 +102,27 @@ def test_has_correct_id_norm():
     charter = Charter(id_text=id_text, id_norm="1307_Ⅱ_22")
     assert charter.id_text == id_text
     assert charter.id_norm == id_norm
-    charter_xml = charter.to_xml()
-    idno = charter_xml.xpath("/cei:text/cei:body/cei:idno", namespaces={"cei": CEI_NS})
-    assert idno[0].get("id") == id_norm
-    assert idno[0].text == id_text
+    idno = _xps(charter, "/cei:text/cei:body/cei:idno")
+    assert idno.get("id") == id_norm
+    assert idno.text == id_text
 
 
 def test_has_correct_id_old():
     id_old = "123456 α"
-    charter_xml = Charter(id_text="1307 II 22", id_old=id_old).to_xml()
-    idno = charter_xml.xpath("/cei:text/cei:body/cei:idno", namespaces={"cei": CEI_NS})
-    assert idno[0].get("old") == id_old
+    idno = _xps(
+        Charter(id_text="1307 II 22", id_old=id_old), "/cei:text/cei:body/cei:idno"
+    )
+    assert idno.get("old") == id_old
+
+
+def test_has_correct_text_abstract():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    charter = Charter(id_text="1", abstract=abstract)
+    assert charter.abstract == abstract
+    abstract_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract")
+    assert abstract_xml.text == abstract
 
 
 def test_has_correct_transcription_bibl():
@@ -91,26 +132,19 @@ def test_has_correct_transcription_bibl():
         transcription_bibls=bibl_text,
     )
     assert isinstance(charter.transcription_bibls, List)
-    bibls = charter.to_xml().xpath(
-        "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*",
-        namespaces={"cei": CEI_NS},
-    )
-    assert isinstance(bibls, List)
-    assert len(bibls) == 1
-    assert bibls[0].text == bibl_text
+    bibls = _xps(charter, "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*")
+    assert bibls.text == bibl_text
 
 
 def test_has_correct_transcription_bibls():
     bibl_texts = ["Bibl a", "Bibl b"]
-    charter = Charter(
-        id_text="1",
-        transcription_bibls=bibl_texts,
-    ).to_xml()
-    bibls = charter.xpath(
+    bibls = _xp(
+        Charter(
+            id_text="1",
+            transcription_bibls=bibl_texts,
+        ),
         "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*",
-        namespaces={"cei": CEI_NS},
     )
-    assert isinstance(bibls, List)
     assert len(bibls) == 2
     assert bibls[0].text == bibl_texts[0]
     assert bibls[1].text == bibl_texts[1]
@@ -119,6 +153,22 @@ def test_has_correct_transcription_bibls():
 def test_has_correct_type():
     charter = Charter(id_text="1").to_xml()
     assert charter.get("type") == "charter"
+
+
+def test_has_correct_xml_abstract():
+    pers_name = "Konrad von Lintz"
+    abstract = CEI.abstract(
+        CEI.persName(pers_name),
+        ", Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag.",
+    )
+    charter = Charter(id_text="1", abstract=abstract)
+    assert charter.abstract == abstract
+    abstract_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract")
+    assert abstract_xml.text == abstract.text
+    pers_name_xml = _xps(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:persName"
+    )
+    assert pers_name_xml.text == pers_name
 
 
 def test_is_valid_charter():
@@ -130,6 +180,12 @@ def test_is_valid_charter():
     Validator().validate_cei(charter.to_xml())
 
 
+def test_raises_exception_for_incorrect_xml_abstract():
+    incorrect_element = CEI.persName("A person")
+    with pytest.raises(CharterContentException):
+        Charter(id_text="1", abstract=incorrect_element)
+
+
 def test_raises_exception_for_missing_id():
-    with pytest.raises(Exception):
-        Charter("")
+    with pytest.raises(CharterContentException):
+        Charter(id_text="")
