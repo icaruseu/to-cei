@@ -24,8 +24,9 @@ def test_has_correct_abstract_bibl():
     charter = Charter(
         id_text="1",
         abstract_bibls=bibl_text,
-    ).to_xml()
-    bibls = charter.xpath(
+    )
+    assert isinstance(charter.abstract_bibls, List)
+    bibls = charter.to_xml().xpath(
         "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescRegest/*",
         namespaces={"cei": CEI_NS},
     )
@@ -51,33 +52,34 @@ def test_has_correct_abstract_bibls():
 
 
 def test_has_correct_id():
-    id = "~!1307 II 22|23.Ⅱ"
+    id_text = "~!1307 II 22|23.Ⅱ"
     id_norm = "~%211307%20II%2022%7C23.%E2%85%A1"
-    charter = Charter(id_text=id)
-    assert charter.id_text == id
+    charter = Charter(id_text=id_text)
+    assert charter.id_text == id_text
     assert charter.id_norm == id_norm
     charter_xml = charter.to_xml()
     idno = charter_xml.xpath("/cei:text/cei:body/cei:idno", namespaces={"cei": CEI_NS})
     assert isinstance(idno, List)
     assert len(idno) == 1
     assert idno[0].get("id") == id_norm
-    assert idno[0].text == id
+    assert idno[0].text == id_text
 
 
 def test_has_correct_id_norm():
+    id_text = "1307 Ⅱ 22"
     id_norm = "1307_%E2%85%A1_22"
-    charter = Charter(id_text="1307 Ⅱ 22", id_norm="1307_Ⅱ_22")
+    charter = Charter(id_text=id_text, id_norm="1307_Ⅱ_22")
+    assert charter.id_text == id_text
     assert charter.id_norm == id_norm
     charter_xml = charter.to_xml()
     idno = charter_xml.xpath("/cei:text/cei:body/cei:idno", namespaces={"cei": CEI_NS})
     assert idno[0].get("id") == id_norm
+    assert idno[0].text == id_text
 
 
 def test_has_correct_id_old():
     id_old = "123456 α"
-    charter = Charter(id_text="1307 II 22", id_old=id_old)
-    assert charter.id_old == id_old
-    charter_xml = charter.to_xml()
+    charter_xml = Charter(id_text="1307 II 22", id_old=id_old).to_xml()
     idno = charter_xml.xpath("/cei:text/cei:body/cei:idno", namespaces={"cei": CEI_NS})
     assert idno[0].get("old") == id_old
 
@@ -87,8 +89,9 @@ def test_has_correct_transcription_bibl():
     charter = Charter(
         id_text="1",
         transcription_bibls=bibl_text,
-    ).to_xml()
-    bibls = charter.xpath(
+    )
+    assert isinstance(charter.transcription_bibls, List)
+    bibls = charter.to_xml().xpath(
         "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*",
         namespaces={"cei": CEI_NS},
     )
