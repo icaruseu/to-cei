@@ -8,6 +8,8 @@ CEI_NS: str = "http://www.monasterium.net/NS/cei"
 CEI = ElementMaker(namespace=CEI_NS, nsmap={None: CEI_NS})
 CHARTER_NSS = {"cei": CEI_NS}
 
+StrOrElement = Optional[str | etree._Element]
+
 
 def join(*values: Optional[etree._Element]):
     """Joins all non-empty values in a list."""
@@ -29,20 +31,24 @@ class CharterContentException(Exception):
 
 
 class Charter:
-    _abstract: Optional[str | etree._Element]
-    _abstract_bibls: List[str]
-    _id_norm: str
-    _id_old: Optional[str]
-    _id_text: str
-    _transcription_bibls: List[str]
+    _abstract: StrOrElement = None
+    _abstract_bibls: List[str] = []
+    _id_norm: str = ""
+    _id_old: Optional[str] = None
+    _id_text: str = ""
+    _issuer: StrOrElement = None
+    _recipient: StrOrElement = None
+    _transcription_bibls: List[str] = []
 
     def __init__(
         self,
         id_text: str,
-        abstract: Optional[str | etree._Element] = None,
+        abstract: StrOrElement = None,
         abstract_bibls: str | List[str] = [],
         id_norm: Optional[str] = None,
         id_old: Optional[str] = None,
+        issuer: StrOrElement = None,
+        recipient: StrOrElement = None,
         transcription_bibls: str | List[str] = [],
     ) -> None:
         """
@@ -60,6 +66,10 @@ class Charter:
 
         id_old: An old, now obsolete identifier of the charter.
 
+        issuer: The issuer of the charter either as text or a complete cei:issuer etree._Element.
+
+        recipient: The recipient of the charter either as text or a complete cei:issuer etree._Element.
+
         transcription_bibls: The bibliography source or sources for the transcription.
         ----------
         """
@@ -70,6 +80,8 @@ class Charter:
         self.id_norm = id_norm if id_norm else id_text
         self.id_old = id_old
         self.id_text = id_text
+        self.issuer = issuer
+        self.recipient = recipient
         self.transcription_bibls = transcription_bibls
 
     # --------------------------------------------------------------------#
@@ -81,14 +93,12 @@ class Charter:
         return self._abstract
 
     @abstract.setter
-    def abstract(self, value: Optional[str | etree._Element] = None):
-        if isinstance(value, etree._Element) and (
-            ln(value) != "abstract" or ns(value) != CEI_NS
-        ):
+    def abstract(self, value: StrOrElement = None):
+        if self.issuer is not None and isinstance(self.issuer, etree._Element):
             raise CharterContentException(
-                "Provided value needs to be a string or a 'cei:abstract' element."
+                "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
             )
-        self._abstract = value
+        self._abstract = self._validate_str_or_element(value, "abstract")
 
     @property
     def abstract_bibls(self):
@@ -123,6 +133,30 @@ class Charter:
         self._id_text = value
 
     @property
+    def issuer(self):
+        return self._issuer
+
+    @issuer.setter
+    def issuer(self, value: StrOrElement):
+        if value is not None and isinstance(self.abstract, etree._Element):
+            raise CharterContentException(
+                "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
+            )
+        self._issuer = self._validate_str_or_element(value, "issuer")
+
+    @property
+    def recipient(self):
+        return self._recipient
+
+    @recipient.setter
+    def recipient(self, value: StrOrElement):
+        if value is not None and isinstance(self.abstract, etree._Element):
+            raise CharterContentException(
+                "XML element content for both recipient and abstract is not allowed, please join the recipient in the XML abstract yourself"
+            )
+        self._recipient = self._validate_str_or_element(value, "recipient")
+
+    @property
     def transcription_bibls(self):
         return self._transcription_bibls
 
@@ -135,8 +169,9 @@ class Charter:
     # --------------------------------------------------------------------#
 
     def _create_cei_abstract(self) -> Optional[etree._Element]:
+        children = join(self._create_cei_recipient(), self._create_cei_issuer())
         return (
-            CEI.abstract(self.abstract)
+            CEI.abstract(self.abstract, *children)
             if isinstance(self.abstract, str)
             else self.abstract
         )
@@ -161,6 +196,26 @@ class Charter:
         if self.id_old:
             attributes["old"] = self.id_old
         return CEI.idno(self.id_text, **attributes)
+
+    def _create_cei_issuer(self) -> Optional[etree._Element]:
+        return (
+            None
+            if self.issuer is None
+            else (
+                CEI.issuer(self.issuer) if isinstance(self.issuer, str) else self.issuer
+            )
+        )
+
+    def _create_cei_recipient(self) -> Optional[etree._Element]:
+        return (
+            None
+            if self.recipient is None
+            else (
+                CEI.recipient(self.recipient)
+                if isinstance(self.recipient, str)
+                else self.recipient
+            )
+        )
 
     def _create_cei_source_desc(self) -> Optional[etree._Element]:
         children = []
@@ -190,6 +245,17 @@ class Charter:
 
     def _build(self) -> etree._Element:
         return self._create_cei_text()
+
+    def _validate_str_or_element(
+        self, value: StrOrElement, tag: Optional[str] = None
+    ) -> StrOrElement:
+        if isinstance(value, etree._Element) and (
+            ns(value) != CEI_NS or (tag and ln(value) != tag)
+        ):
+            raise CharterContentException(
+                "Provided value needs to be a string or a 'cei:abstract' element."
+            )
+        return value
 
     # --------------------------------------------------------------------#
     #                           Public methods                           #

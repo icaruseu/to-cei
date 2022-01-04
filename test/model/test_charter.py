@@ -85,6 +85,60 @@ def test_has_correct_abstract_bibls():
     assert bibls[1].text == bibl_texts[1]
 
 
+def test_has_correct_abstract_with_text_issuer():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    issuer = "Konrad von Lintz"
+    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
+    assert isinstance(charter.issuer, str)
+    assert charter.issuer == issuer
+    issuer_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
+    assert issuer_xml.text == issuer
+
+
+def test_has_correct_abstract_with_text_recipient():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    recipient = "Heinrich Müller"
+    charter = Charter(id_text="1", abstract=abstract, recipient=recipient)
+    assert isinstance(charter.recipient, str)
+    assert charter.recipient == recipient
+    recipient_xml = _xps(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:recipient"
+    )
+    assert recipient_xml.text == recipient
+
+
+def test_has_correct_abstract_with_xml_issuer():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    issuer = CEI.issuer("Konrad von Lintz")
+    assert isinstance(issuer, etree._Element)
+    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
+    assert isinstance(charter.issuer, etree._Element)
+    assert charter.issuer.text == issuer.text
+    issuer_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
+    assert issuer_xml.text == issuer.text
+
+
+def test_has_correct_abstract_with_xml_recipient():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    recipient = CEI.recipient("Heinrich Müller")
+    assert isinstance(recipient, etree._Element)
+    charter = Charter(id_text="1", abstract=abstract, recipient=recipient)
+    assert isinstance(charter.recipient, etree._Element)
+    assert charter.recipient.text == recipient.text
+    recipient_xml = _xps(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:recipient"
+    )
+    assert recipient_xml.text == recipient.text
+
+
 def test_has_correct_id():
     id_text = "~!1307 II 22|23.Ⅱ"
     id_norm = "~%211307%20II%2022%7C23.%E2%85%A1"
@@ -173,8 +227,11 @@ def test_has_correct_xml_abstract():
 
 def test_is_valid_charter():
     charter = Charter(
-        id_text="1307 II 22",
+        "1307 II 22",
+        abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
         abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
+        issuer="Konrad von Lintz",
+        recipient="Heinrich, des Praitenvelders Schreiber",
         transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
     )
     Validator().validate_cei(charter.to_xml())
@@ -186,6 +243,30 @@ def test_raises_exception_for_incorrect_xml_abstract():
         Charter(id_text="1", abstract=incorrect_element)
 
 
+def test_raises_exception_for_incorrect_xml_issuer():
+    incorrect_element = CEI.persName("A person")
+    with pytest.raises(CharterContentException):
+        Charter(id_text="1", issuer=incorrect_element)
+
+
+def test_raises_exception_for_incorrect_xml_recipient():
+    incorrect_element = CEI.issuer("A person")
+    with pytest.raises(CharterContentException):
+        Charter(id_text="1", recipient=incorrect_element)
+
+
 def test_raises_exception_for_missing_id():
     with pytest.raises(CharterContentException):
         Charter(id_text="")
+
+
+def test_raises_exception_for_xml_abstract_with_issuer():
+    with pytest.raises(CharterContentException):
+        Charter(id_text="1", abstract=CEI.abstract("An abstract"), issuer="An issuer")
+
+
+def test_raises_exception_for_xml_abstract_with_recipient():
+    with pytest.raises(CharterContentException):
+        Charter(
+            id_text="1", abstract=CEI.abstract("An abstract"), recipient="An recipient"
+        )
