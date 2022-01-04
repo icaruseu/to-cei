@@ -36,6 +36,7 @@ class Charter:
     _id_norm: str = ""
     _id_old: Optional[str] = None
     _id_text: str = ""
+    _issued_place: StrOrElement = None
     _issuer: StrOrElement = None
     _recipient: StrOrElement = None
     _transcription_bibls: List[str] = []
@@ -47,6 +48,7 @@ class Charter:
         abstract_bibls: str | List[str] = [],
         id_norm: Optional[str] = None,
         id_old: Optional[str] = None,
+        issued_place: StrOrElement = None,
         issuer: StrOrElement = None,
         recipient: StrOrElement = None,
         transcription_bibls: str | List[str] = [],
@@ -66,6 +68,8 @@ class Charter:
 
         id_old: An old, now obsolete identifier of the charter.
 
+        issued_place: The place the charter has been issued at either as text or a complete cei:placeName etree._Element.
+
         issuer: The issuer of the charter either as text or a complete cei:issuer etree._Element.
 
         recipient: The recipient of the charter either as text or a complete cei:issuer etree._Element.
@@ -80,6 +84,7 @@ class Charter:
         self.id_norm = id_norm if id_norm else id_text
         self.id_old = id_old
         self.id_text = id_text
+        self.issued_place = issued_place
         self.issuer = issuer
         self.recipient = recipient
         self.transcription_bibls = transcription_bibls
@@ -133,6 +138,14 @@ class Charter:
         self._id_text = value
 
     @property
+    def issued_place(self):
+        return self._issued_place
+
+    @issued_place.setter
+    def issued_place(self, value: StrOrElement):
+        self._issued_place = self._validate_str_or_element(value, "placeName")
+
+    @property
     def issuer(self):
         return self._issuer
 
@@ -184,7 +197,7 @@ class Charter:
         return CEI.body(*children)
 
     def _create_cei_chdesc(self) -> Optional[etree._Element]:
-        children = join(self._create_cei_abstract())
+        children = join(self._create_cei_abstract(), self._create_cei_issued())
         return CEI.chDesc(*children) if len(children) else None
 
     def _create_cei_front(self) -> etree._Element:
@@ -197,6 +210,10 @@ class Charter:
             attributes["old"] = self.id_old
         return CEI.idno(self.id_text, **attributes)
 
+    def _create_cei_issued(self) -> Optional[etree._Element]:
+        children = join(self._create_cei_place_name(self.issued_place))
+        return CEI.issued(*children) if len(children) else None
+
     def _create_cei_issuer(self) -> Optional[etree._Element]:
         return (
             None
@@ -204,6 +221,13 @@ class Charter:
             else (
                 CEI.issuer(self.issuer) if isinstance(self.issuer, str) else self.issuer
             )
+        )
+
+    def _create_cei_place_name(self, value: StrOrElement) -> Optional[etree._Element]:
+        return (
+            None
+            if value is None
+            else (CEI.placeName(value) if isinstance(value, str) else value)
         )
 
     def _create_cei_recipient(self) -> Optional[etree._Element]:

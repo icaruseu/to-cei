@@ -179,6 +179,16 @@ def test_has_correct_text_abstract():
     assert abstract_xml.text == abstract
 
 
+def test_has_correct_text_issued_place():
+    issued_place = "Wien"
+    charter = Charter(id_text="1", issued_place=issued_place)
+    assert charter.issued_place == issued_place
+    issued_place_xml = _xps(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:placeName"
+    )
+    assert issued_place_xml.text == issued_place
+
+
 def test_has_correct_transcription_bibl():
     bibl_text = "Bibl a"
     charter = Charter(
@@ -225,6 +235,16 @@ def test_has_correct_xml_abstract():
     assert pers_name_xml.text == pers_name
 
 
+def test_has_correct_xml_issued_place():
+    issued_place = CEI.placeName("Wien")
+    charter = Charter(id_text="1", issued_place=issued_place)
+    assert charter.issued_place == issued_place
+    issued_place_xml = _xps(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:placeName"
+    )
+    assert issued_place_xml.text == issued_place.text
+
+
 def test_is_valid_charter():
     charter = Charter(
         "1307 II 22",
@@ -233,6 +253,7 @@ def test_is_valid_charter():
         issuer="Konrad von Lintz",
         recipient="Heinrich, des Praitenvelders Schreiber",
         transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
+        issued_place="Wiener",
     )
     Validator().validate_cei(charter.to_xml())
 
@@ -241,6 +262,12 @@ def test_raises_exception_for_incorrect_xml_abstract():
     incorrect_element = CEI.persName("A person")
     with pytest.raises(CharterContentException):
         Charter(id_text="1", abstract=incorrect_element)
+
+
+def test_raises_exception_for_incorrect_xml_issued_place():
+    incorrect_element = CEI.persName("A person")
+    with pytest.raises(CharterContentException):
+        Charter(id_text="1", issued_place=incorrect_element)
 
 
 def test_raises_exception_for_incorrect_xml_issuer():
