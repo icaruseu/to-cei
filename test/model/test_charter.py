@@ -1,10 +1,13 @@
+from datetime import datetime
 from typing import Any, List
 
 import pytest
+from astropy.time.core import Time
 from lxml import etree
 
-from model.charter import (CEI, CEI_NS, CHARTER_NSS, Charter,
-                           CharterContentException, join, ln, ns)
+from model.charter import (CEI, CEI_NS, CHARTER_NSS, NO_DATE_TEXT,
+                           NO_DATE_VALUE, Charter, CharterContentException,
+                           join, ln, ns)
 from model.validator import Validator
 
 # --------------------------------------------------------------------#
@@ -139,6 +142,150 @@ def test_has_correct_abstract_with_xml_recipient():
     assert recipient_xml.text == recipient.text
 
 
+def test_has_correct_date_range_with_99999999():
+    charter = Charter(id_text="1", date="unknown", date_value=("99999999", "99999999"))
+    assert charter.date == "unknown"
+    assert charter.date_value == None
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == "unknown"
+    assert date_xml.get("value") == NO_DATE_VALUE
+
+
+def test_has_correct_date_with_99999999():
+    charter = Charter(id_text="1", date="unknown", date_value="99999999")
+    assert charter.date == "unknown"
+    assert charter.date_value == None
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == "unknown"
+    assert date_xml.get("value") == NO_DATE_VALUE
+
+
+def test_has_correct_date_range_with_datetime():
+    charter = Charter(
+        id_text="1",
+        date="1300",
+        date_value=(datetime(1300, 1, 1), datetime(1300, 12, 31)),
+    )
+    assert charter.date == "1300"
+    assert charter.date_value == (
+        Time("1300-01-01", format="isot", scale="ut1"),
+        Time("1300-12-31", format="isot", scale="ut1"),
+    )
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:dateRange")
+    assert date_xml.text == "1300"
+    assert date_xml.get("from") == "13000101"
+    assert date_xml.get("to") == "13001231"
+
+
+def test_has_correct_date_with_datetime():
+    charter = Charter(
+        id_text="1",
+        date="1. 1. 1300",
+        date_value=datetime(1300, 1, 1),
+    )
+    assert charter.date == "1. 1. 1300"
+    assert charter.date_value == Time("1300-01-01", format="isot", scale="ut1")
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == "1. 1. 1300"
+    assert date_xml.get("value") == "13000101"
+
+
+def test_has_correct_date_range_with_iso():
+    charter = Charter(id_text="1", date="1300", date_value=("1300-01-01", "1300-12-31"))
+    assert charter.date == "1300"
+    assert charter.date_value == (
+        Time("1300-01-01", format="isot", scale="ut1"),
+        Time("1300-12-31", format="isot", scale="ut1"),
+    )
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:dateRange")
+    assert date_xml.text == "1300"
+    assert date_xml.get("from") == "13000101"
+    assert date_xml.get("to") == "13001231"
+
+
+def test_has_correct_date_with_iso():
+    charter = Charter(id_text="1", date="12. 1. 1342", date_value="1342-01-12")
+    assert charter.date == "12. 1. 1342"
+    assert charter.date_value == Time("1342-01-12", format="isot", scale="ut1")
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == "12. 1. 1342"
+    assert date_xml.get("value") == "13420112"
+
+
+def test_has_correct_date_range_with_Time():
+    charter = Charter(
+        id_text="1",
+        date="1300",
+        date_value=(
+            Time({"year": 1300, "month": 1, "day": 1}, scale="ut1"),
+            Time({"year": 1300, "month": 12, "day": 31}, scale="ut1"),
+        ),
+    )
+    assert charter.date == "1300"
+    assert charter.date_value == (
+        Time("1300-01-01", format="isot", scale="ut1"),
+        Time("1300-12-31", format="isot", scale="ut1"),
+    )
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:dateRange")
+    assert date_xml.text == "1300"
+    assert date_xml.get("from") == "13000101"
+    assert date_xml.get("to") == "13001231"
+
+
+def test_has_correct_date_with_Time():
+    charter = Charter(
+        id_text="1",
+        date="1. 1. 1300",
+        date_value=Time({"year": 1300, "month": 1, "day": 1}, scale="ut1"),
+    )
+    assert charter.date == "1. 1. 1300"
+    assert charter.date_value == Time("1300-01-01", format="isot", scale="ut1")
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == "1. 1. 1300"
+    assert date_xml.get("value") == "13000101"
+
+
+def test_has_correct_empty_date():
+    charter = Charter(id_text="1")
+    assert charter.date == None
+    assert charter.date_value == None
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == NO_DATE_TEXT
+    assert date_xml.get("value") == NO_DATE_VALUE
+
+
+def test_has_correct_empty_date_range_text():
+    charter = Charter(id_text="1", date_value=("1300-01-01", "1300-12-31"))
+    assert charter.date == None
+    assert charter.date_value == (
+        Time("1300-01-01", format="isot", scale="ut1"),
+        Time("1300-12-31", format="isot", scale="ut1"),
+    )
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:dateRange")
+    assert date_xml.text == "+01300-01-01 - +01300-12-31"
+    assert date_xml.get("from") == "13000101"
+    assert date_xml.get("to") == "13001231"
+
+
+def test_has_correct_empty_date_text():
+    charter = Charter(id_text="1", date_value="1342-01-12")
+    assert charter.date == None
+    assert charter.date_value == Time("1342-01-12", format="isot", scale="ut1")
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == "+01342-01-12"
+    assert date_xml.get("value") == "13420112"
+
+
+def test_has_correct_empty_date_value():
+    text = "Sine dato"
+    charter = Charter(id_text="1", date=text)
+    assert charter.date == text
+    assert charter.date_value == None
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == text
+    assert date_xml.get("value") == NO_DATE_VALUE
+
+
 def test_has_correct_id():
     id_text = "~!1307 II 22|23.Ⅱ"
     id_norm = "~%211307%20II%2022%7C23.%E2%85%A1"
@@ -235,6 +382,30 @@ def test_has_correct_xml_abstract():
     assert pers_name_xml.text == pers_name
 
 
+def test_has_correct_xml_date():
+    date_text = "12. 10. 1789"
+    date_value = "17980101"
+    date = CEI.date(date_text, {"value": date_value})
+    charter = Charter(id_text="1", date=date)
+    assert charter.date == date
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == date_text
+    assert date_xml.get("value") == date_value
+
+
+def test_has_correct_xml_date_range():
+    date_text = "some time in 1789"
+    date_from = "17980101"
+    date_to = "17981231"
+    date = CEI.dateRange(date_text, {"from": date_from, "to": date_to})
+    charter = Charter(id_text="1", date=date)
+    assert charter.date == date
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:dateRange")
+    assert date_xml.text == date_text
+    assert date_xml.get("from") == date_from
+    assert date_xml.get("to") == date_to
+
+
 def test_has_correct_xml_issued_place():
     issued_place = CEI.placeName("Wien")
     charter = Charter(id_text="1", issued_place=issued_place)
@@ -250,6 +421,8 @@ def test_is_valid_charter():
         "1307 II 22",
         abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
         abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
+        date="1307 II 22",
+        date_value=Time("1307-02-22", format="isot", scale="ut1"),
         issuer="Konrad von Lintz",
         recipient="Heinrich, des Praitenvelders Schreiber",
         transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
@@ -258,10 +431,25 @@ def test_is_valid_charter():
     Validator().validate_cei(charter.to_xml())
 
 
+def test_raises_exception_for_incorrect_date_value():
+    with pytest.raises(CharterContentException):
+        Charter(
+            id_text="1",
+            date="in 1789",
+            date_value=("17980101", datetime(1789, 12, 31)),
+        )
+
+
 def test_raises_exception_for_incorrect_xml_abstract():
     incorrect_element = CEI.persName("A person")
     with pytest.raises(CharterContentException):
         Charter(id_text="1", abstract=incorrect_element)
+
+
+def test_raises_exception_for_incorrect_xml_date():
+    incorrect_element = CEI.persName("A person")
+    with pytest.raises(CharterContentException):
+        Charter(id_text="1", date=incorrect_element)
 
 
 def test_raises_exception_for_incorrect_xml_issued_place():
@@ -297,3 +485,19 @@ def test_raises_exception_for_xml_abstract_with_recipient():
         Charter(
             id_text="1", abstract=CEI.abstract("An abstract"), recipient="An recipient"
         )
+
+
+def test_raises_exception_when_initializing_with_xml_date_and_value():
+    date_value = "17980101"
+    date = CEI.date("12. 10. 1789", {"value": date_value})
+    with pytest.raises(CharterContentException):
+        Charter(id_text="1", date=date, date_value=date_value)
+
+
+def test_raises_exception_when_setting_date_value_for_xml_date():
+    date_from = "17980101"
+    date_to = "17981231"
+    date = CEI.dateRange("12. 10. 1789", {"from": date_from, "to": date_to})
+    charter = Charter(id_text="1", date=date)
+    with pytest.raises(CharterContentException):
+        charter.date_value = (date_from, date_to)

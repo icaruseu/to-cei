@@ -1,3 +1,4 @@
+astropy
 lxml
 lxml-stubs
 pytest
