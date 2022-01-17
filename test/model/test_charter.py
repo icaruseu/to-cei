@@ -422,7 +422,7 @@ def test_raises_exception_when_setting_date_value_for_xml_date():
 # --------------------------------------------------------------------#
 
 
-def test_has_correct_figures():
+def test_has_correct_list_figures():
     graphic_urls = ["Figure 1.jgp", "figure_2.png"]
     charter = Charter(id_text="1", graphic_urls=graphic_urls)
     assert charter.graphic_urls == graphic_urls
@@ -432,6 +432,16 @@ def test_has_correct_figures():
     assert len(graphics_xml) == 2
     assert graphics_xml[0].get("url") == graphic_urls[0]
     assert graphics_xml[1].get("url") == graphic_urls[1]
+
+
+def test_has_correct_single_figures():
+    graphic_urls = "Figure 1.jgp"
+    charter = Charter(id_text="1", graphic_urls=graphic_urls)
+    assert charter.graphic_urls[0] == graphic_urls
+    graphics_xml = _xps(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:figure/cei:graphic"
+    )
+    assert graphics_xml.get("url") == graphic_urls
 
 
 # --------------------------------------------------------------------#

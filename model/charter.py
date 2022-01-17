@@ -148,7 +148,7 @@ class Charter:
         abstract_bibls: str | List[str] = [],
         date: StrOrElement = None,
         date_value: DateValue = None,
-        graphic_urls: List[str] = [],
+        graphic_urls: str | List[str] = [],
         id_norm: Optional[str] = None,
         id_old: Optional[str] = None,
         issued_place: StrOrElement = None,
@@ -302,8 +302,8 @@ class Charter:
         return self._graphic_urls
 
     @graphic_urls.setter
-    def graphic_urls(self, value: List[str] = []):
-        self._graphic_urls = value
+    def graphic_urls(self, value: str | List[str] = []):
+        self._graphic_urls = value if isinstance(value, List) else [value]
 
     @property
     def id_norm(self):
