@@ -30,9 +30,17 @@ DateValue = Optional[Date | Tuple[Date, Date]]
 StrOrElement = Optional[str | etree._Element]
 
 
-def join(*values: Optional[etree._Element]):
+def join(
+    *values: Optional[etree._Element | List[etree._Element]],
+) -> List[etree._Element]:
     """Joins all non-empty values in a list."""
-    return [value for value in values if isinstance(value, etree._Element)]
+    all = []
+    for value in values:
+        if isinstance(value, etree._Element):
+            all.append(value)
+        elif isinstance(value, List):
+            all = all + value
+    return all
 
 
 def ln(element: etree._Element) -> str:
@@ -123,6 +131,7 @@ class Charter:
     _abstract_bibls: List[str] = []
     _date: StrOrElement = None
     _date_value: Optional[Time | Tuple[Time, Time]] = None
+    _graphic_urls: List[str] = []
     _id_norm: str = ""
     _id_old: Optional[str] = None
     _id_text: str = ""
@@ -139,6 +148,7 @@ class Charter:
         abstract_bibls: str | List[str] = [],
         date: StrOrElement = None,
         date_value: DateValue = None,
+        graphic_urls: List[str] = [],
         id_norm: Optional[str] = None,
         id_old: Optional[str] = None,
         issued_place: StrOrElement = None,
@@ -162,6 +172,8 @@ class Charter:
 
         date_value: The actual date value in case the value in date is just a text and not an XML element. Can bei either an ISO date string, a MOM-compatible string, a python datetime object (can only be between years 1 and 9999) or an astropy Time object - or a tuple with two such values. If a single value is given, it is interpreted as an exact value, otherwise the two values will be used as from/to attributes of a cei:dateRange object. Missing values will be added to the xml as @value="99999999" to conform with the MOM data practices. When a date_value is added and date is an XML element, an exception is raised.
 
+        graphic_urls: A list of strings that represents the urls of various images representing the charter. Can bei either full urls or just the filenames of the image files, depending on the charter fond / collection settings.
+
         id_norm: A normalized id for the charter. It will be percent-encoded to ensure only valid characters are used. If it is ommitted, the normalized version of id_text will be used.
 
         id_old: An old, now obsolete identifier of the charter.
@@ -184,6 +196,7 @@ class Charter:
         self.date = date
         if date_value is not None:
             self.date_value = date_value
+        self.graphic_urls = graphic_urls
         self.id_norm = id_norm if id_norm else id_text
         self.id_old = id_old
         self.id_text = id_text
@@ -283,6 +296,14 @@ class Charter:
             self._date_value = string_to_time(value)  # type: ignore
         else:
             raise CharterContentException("Invalid date value: '{}'".format(value))
+
+    @property
+    def graphic_urls(self):
+        return self._graphic_urls
+
+    @graphic_urls.setter
+    def graphic_urls(self, value: List[str] = []):
+        self._graphic_urls = value
 
     @property
     def id_norm(self):
@@ -415,6 +436,13 @@ class Charter:
         # Nothing
         return CEI.date(NO_DATE_TEXT, {"value": NO_DATE_VALUE})
 
+    def _create_cei_figures(self) -> List[etree._Element]:
+        return (
+            []
+            if len(self.graphic_urls) == 0
+            else [CEI.figure(CEI.graphic({"url": url})) for url in self.graphic_urls]
+        )
+
     def _create_cei_front(self) -> etree._Element:
         children = join(self._create_cei_source_desc())
         return CEI.front(*children)
@@ -486,7 +514,7 @@ class Charter:
         )
 
     def _create_cei_witness_orig(self) -> Optional[etree._Element]:
-        children = join(self._create_cei_traditio_form())
+        children = join(self._create_cei_traditio_form(), self._create_cei_figures())
         return None if len(children) == 0 else CEI.witnessOrig(*children)
 
     # --------------------------------------------------------------------#

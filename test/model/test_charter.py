@@ -54,10 +54,14 @@ def test_gets_correct_namespace():
 
 
 def test_joins_correctly():
-    joined = join(CEI.text(), None, CEI.persName(), None)
-    assert len(joined) == 2
+    joined = join(
+        CEI.text(), None, CEI.persName(), None, [CEI.placeName(), CEI.persName()]
+    )
+    assert len(joined) == 4
     assert etree.tostring(joined[0]) == etree.tostring(CEI.text())
     assert etree.tostring(joined[1]) == etree.tostring(CEI.persName())
+    assert etree.tostring(joined[2]) == etree.tostring(CEI.placeName())
+    assert etree.tostring(joined[3]) == etree.tostring(CEI.persName())
 
 
 # --------------------------------------------------------------------#
@@ -80,7 +84,8 @@ def test_is_valid_charter():
         abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
         date="1307 II 22",
         date_value=Time("1307-02-22", format="isot", scale="ut1"),
-        issued_place="Wiener",
+        graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
+        issued_place="Wiener Neustadt",
         issuer="Konrad von Lintz",
         recipient="Heinrich, des Praitenvelders Schreiber",
         tradition_form="orig.",
@@ -410,6 +415,23 @@ def test_raises_exception_when_setting_date_value_for_xml_date():
     charter = Charter(id_text="1", date=date)
     with pytest.raises(CharterContentException):
         charter.date_value = (date_from, date_to)
+
+
+# --------------------------------------------------------------------#
+#                     Charter figures / graphics                     #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_figures():
+    graphic_urls = ["Figure 1.jgp", "figure_2.png"]
+    charter = Charter(id_text="1", graphic_urls=graphic_urls)
+    assert charter.graphic_urls == graphic_urls
+    graphics_xml = _xp(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:figure/cei:graphic"
+    )
+    assert len(graphics_xml) == 2
+    assert graphics_xml[0].get("url") == graphic_urls[0]
+    assert graphics_xml[1].get("url") == graphic_urls[1]
 
 
 # --------------------------------------------------------------------#

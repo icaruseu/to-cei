@@ -8,7 +8,10 @@ if __name__ == "__main__":
             abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
             date="1307 II 22",
             date_value="13070222",
-            issued_place="Wiener",
+            graphic_urls=[
+                "K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"
+            ],
+            issued_place="Wiener Neustadt",
             issuer="Konrad von Lintz",
             recipient="Heinrich, des Praitenvelders Schreiber",
             tradition_form="orig.",
