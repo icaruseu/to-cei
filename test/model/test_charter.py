@@ -29,7 +29,7 @@ def _xp(charter: Charter, xpath: str) -> List[etree._Element]:
 
 
 def _xps(charter: Charter, xpath: str) -> etree._Element:
-    """Evaluates an xpath on the charters xml content, makes sure that it only has a single element and returns the element."""
+    """Evaluates an xpath on the charters xml content, asserts that it only has a single element and returns the element."""
     list = _xp(charter, xpath)
     assert len(list) == 1
     return list[0]
@@ -37,6 +37,11 @@ def _xps(charter: Charter, xpath: str) -> etree._Element:
 
 # --------------------------------------------------------------------#
 #                               Tests                                #
+# --------------------------------------------------------------------#
+
+
+# --------------------------------------------------------------------#
+#                          Helper functions                          #
 # --------------------------------------------------------------------#
 
 
@@ -55,12 +60,74 @@ def test_joins_correctly():
     assert etree.tostring(joined[1]) == etree.tostring(CEI.persName())
 
 
+# --------------------------------------------------------------------#
+#                         Charter as a whole                         #
+# --------------------------------------------------------------------#
+
+
 def test_has_correct_base_structure():
     direct_children = _xp(Charter(id_text="1"), "/cei:text/child::*")
     assert len(direct_children) == 3
     assert ln(direct_children[0]) == "front"
     assert ln(direct_children[1]) == "body"
     assert ln(direct_children[2]) == "back"
+
+
+def test_is_valid_charter():
+    charter = Charter(
+        "1307 II 22",
+        abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
+        abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
+        date="1307 II 22",
+        date_value=Time("1307-02-22", format="isot", scale="ut1"),
+        issuer="Konrad von Lintz",
+        recipient="Heinrich, des Praitenvelders Schreiber",
+        transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
+        issued_place="Wiener",
+    )
+    Validator().validate_cei(charter.to_xml())
+
+
+# --------------------------------------------------------------------#
+#                          Charter abstract                          #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_text_abstract():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    charter = Charter(id_text="1", abstract=abstract)
+    assert charter.abstract == abstract
+    abstract_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract")
+    assert abstract_xml.text == abstract
+
+
+def test_has_correct_xml_abstract():
+    pers_name = "Konrad von Lintz"
+    abstract = CEI.abstract(
+        CEI.persName(pers_name),
+        ", Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag.",
+    )
+    charter = Charter(id_text="1", abstract=abstract)
+    assert charter.abstract == abstract
+    abstract_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract")
+    assert abstract_xml.text == abstract.text
+    pers_name_xml = _xps(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:persName"
+    )
+    assert pers_name_xml.text == pers_name
+
+
+def test_raises_exception_for_incorrect_xml_abstract():
+    incorrect_element = CEI.persName("A person")
+    with pytest.raises(CharterContentException):
+        Charter(id_text="1", abstract=incorrect_element)
+
+
+# --------------------------------------------------------------------#
+#                           Bibliographies                           #
+# --------------------------------------------------------------------#
 
 
 def test_has_correct_abstract_bibl():
@@ -88,58 +155,34 @@ def test_has_correct_abstract_bibls():
     assert bibls[1].text == bibl_texts[1]
 
 
-def test_has_correct_abstract_with_text_issuer():
-    abstract = (
-        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+def test_has_correct_transcription_bibl():
+    bibl_text = "Bibl a"
+    charter = Charter(
+        id_text="1",
+        transcription_bibls=bibl_text,
     )
-    issuer = "Konrad von Lintz"
-    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
-    assert isinstance(charter.issuer, str)
-    assert charter.issuer == issuer
-    issuer_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
-    assert issuer_xml.text == issuer
+    assert isinstance(charter.transcription_bibls, List)
+    bibls = _xps(charter, "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*")
+    assert bibls.text == bibl_text
 
 
-def test_has_correct_abstract_with_text_recipient():
-    abstract = (
-        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+def test_has_correct_transcription_bibls():
+    bibl_texts = ["Bibl a", "Bibl b"]
+    bibls = _xp(
+        Charter(
+            id_text="1",
+            transcription_bibls=bibl_texts,
+        ),
+        "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*",
     )
-    recipient = "Heinrich Müller"
-    charter = Charter(id_text="1", abstract=abstract, recipient=recipient)
-    assert isinstance(charter.recipient, str)
-    assert charter.recipient == recipient
-    recipient_xml = _xps(
-        charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:recipient"
-    )
-    assert recipient_xml.text == recipient
+    assert len(bibls) == 2
+    assert bibls[0].text == bibl_texts[0]
+    assert bibls[1].text == bibl_texts[1]
 
 
-def test_has_correct_abstract_with_xml_issuer():
-    abstract = (
-        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
-    )
-    issuer = CEI.issuer("Konrad von Lintz")
-    assert isinstance(issuer, etree._Element)
-    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
-    assert isinstance(charter.issuer, etree._Element)
-    assert charter.issuer.text == issuer.text
-    issuer_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
-    assert issuer_xml.text == issuer.text
-
-
-def test_has_correct_abstract_with_xml_recipient():
-    abstract = (
-        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
-    )
-    recipient = CEI.recipient("Heinrich Müller")
-    assert isinstance(recipient, etree._Element)
-    charter = Charter(id_text="1", abstract=abstract, recipient=recipient)
-    assert isinstance(charter.recipient, etree._Element)
-    assert charter.recipient.text == recipient.text
-    recipient_xml = _xps(
-        charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:recipient"
-    )
-    assert recipient_xml.text == recipient.text
+# --------------------------------------------------------------------#
+#                            Charter date                             #
+# --------------------------------------------------------------------#
 
 
 def test_has_correct_date_range_with_99999999():
@@ -286,6 +329,66 @@ def test_has_correct_empty_date_value():
     assert date_xml.get("value") == NO_DATE_VALUE
 
 
+def test_has_correct_xml_date():
+    date_text = "12. 10. 1789"
+    date_value = "17980101"
+    date = CEI.date(date_text, {"value": date_value})
+    charter = Charter(id_text="1", date=date)
+    assert charter.date == date
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == date_text
+    assert date_xml.get("value") == date_value
+
+
+def test_has_correct_xml_date_range():
+    date_text = "some time in 1789"
+    date_from = "17980101"
+    date_to = "17981231"
+    date = CEI.dateRange(date_text, {"from": date_from, "to": date_to})
+    charter = Charter(id_text="1", date=date)
+    assert charter.date == date
+    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:dateRange")
+    assert date_xml.text == date_text
+    assert date_xml.get("from") == date_from
+    assert date_xml.get("to") == date_to
+
+
+def test_raises_exception_when_initializing_with_xml_date_and_value():
+    date_value = "17980101"
+    date = CEI.date("12. 10. 1789", {"value": date_value})
+    with pytest.raises(CharterContentException):
+        Charter(id_text="1", date=date, date_value=date_value)
+
+
+def test_raises_exception_for_incorrect_date_value():
+    with pytest.raises(CharterContentException):
+        Charter(
+            id_text="1",
+            date="in 1789",
+            date_value=("17980101", datetime(1789, 12, 31)),
+        )
+
+
+def test_raises_exception_for_incorrect_xml_date():
+    incorrect_element = CEI.persName("A person")
+    with pytest.raises(CharterContentException):
+        Charter(id_text="1", date=incorrect_element)
+
+
+def test_raises_exception_when_setting_date_value_for_xml_date():
+    date_from = "17980101"
+    date_to = "17981231"
+    date = CEI.dateRange("12. 10. 1789", {"from": date_from, "to": date_to})
+    charter = Charter(id_text="1", date=date)
+    with pytest.raises(CharterContentException):
+        charter.date_value = (date_from, date_to)
+
+
+# --------------------------------------------------------------------#
+#                             Charter id                             #
+# --------------------------------------------------------------------#
+
+
 def test_has_correct_id():
     id_text = "~!1307 II 22|23.Ⅱ"
     id_norm = "~%211307%20II%2022%7C23.%E2%85%A1"
@@ -316,14 +419,14 @@ def test_has_correct_id_old():
     assert idno.get("old") == id_old
 
 
-def test_has_correct_text_abstract():
-    abstract = (
-        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
-    )
-    charter = Charter(id_text="1", abstract=abstract)
-    assert charter.abstract == abstract
-    abstract_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract")
-    assert abstract_xml.text == abstract
+def test_raises_exception_for_missing_id():
+    with pytest.raises(CharterContentException):
+        Charter(id_text="")
+
+
+# --------------------------------------------------------------------#
+#                        Charter issued place                        #
+# --------------------------------------------------------------------#
 
 
 def test_has_correct_text_issued_place():
@@ -336,76 +439,6 @@ def test_has_correct_text_issued_place():
     assert issued_place_xml.text == issued_place
 
 
-def test_has_correct_transcription_bibl():
-    bibl_text = "Bibl a"
-    charter = Charter(
-        id_text="1",
-        transcription_bibls=bibl_text,
-    )
-    assert isinstance(charter.transcription_bibls, List)
-    bibls = _xps(charter, "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*")
-    assert bibls.text == bibl_text
-
-
-def test_has_correct_transcription_bibls():
-    bibl_texts = ["Bibl a", "Bibl b"]
-    bibls = _xp(
-        Charter(
-            id_text="1",
-            transcription_bibls=bibl_texts,
-        ),
-        "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*",
-    )
-    assert len(bibls) == 2
-    assert bibls[0].text == bibl_texts[0]
-    assert bibls[1].text == bibl_texts[1]
-
-
-def test_has_correct_type():
-    charter = Charter(id_text="1").to_xml()
-    assert charter.get("type") == "charter"
-
-
-def test_has_correct_xml_abstract():
-    pers_name = "Konrad von Lintz"
-    abstract = CEI.abstract(
-        CEI.persName(pers_name),
-        ", Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag.",
-    )
-    charter = Charter(id_text="1", abstract=abstract)
-    assert charter.abstract == abstract
-    abstract_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract")
-    assert abstract_xml.text == abstract.text
-    pers_name_xml = _xps(
-        charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:persName"
-    )
-    assert pers_name_xml.text == pers_name
-
-
-def test_has_correct_xml_date():
-    date_text = "12. 10. 1789"
-    date_value = "17980101"
-    date = CEI.date(date_text, {"value": date_value})
-    charter = Charter(id_text="1", date=date)
-    assert charter.date == date
-    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
-    assert date_xml.text == date_text
-    assert date_xml.get("value") == date_value
-
-
-def test_has_correct_xml_date_range():
-    date_text = "some time in 1789"
-    date_from = "17980101"
-    date_to = "17981231"
-    date = CEI.dateRange(date_text, {"from": date_from, "to": date_to})
-    charter = Charter(id_text="1", date=date)
-    assert charter.date == date
-    date_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:dateRange")
-    assert date_xml.text == date_text
-    assert date_xml.get("from") == date_from
-    assert date_xml.get("to") == date_to
-
-
 def test_has_correct_xml_issued_place():
     issued_place = CEI.placeName("Wien")
     charter = Charter(id_text="1", issued_place=issued_place)
@@ -416,46 +449,40 @@ def test_has_correct_xml_issued_place():
     assert issued_place_xml.text == issued_place.text
 
 
-def test_is_valid_charter():
-    charter = Charter(
-        "1307 II 22",
-        abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
-        abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
-        date="1307 II 22",
-        date_value=Time("1307-02-22", format="isot", scale="ut1"),
-        issuer="Konrad von Lintz",
-        recipient="Heinrich, des Praitenvelders Schreiber",
-        transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
-        issued_place="Wiener",
-    )
-    Validator().validate_cei(charter.to_xml())
-
-
-def test_raises_exception_for_incorrect_date_value():
-    with pytest.raises(CharterContentException):
-        Charter(
-            id_text="1",
-            date="in 1789",
-            date_value=("17980101", datetime(1789, 12, 31)),
-        )
-
-
-def test_raises_exception_for_incorrect_xml_abstract():
-    incorrect_element = CEI.persName("A person")
-    with pytest.raises(CharterContentException):
-        Charter(id_text="1", abstract=incorrect_element)
-
-
-def test_raises_exception_for_incorrect_xml_date():
-    incorrect_element = CEI.persName("A person")
-    with pytest.raises(CharterContentException):
-        Charter(id_text="1", date=incorrect_element)
-
-
 def test_raises_exception_for_incorrect_xml_issued_place():
     incorrect_element = CEI.persName("A person")
     with pytest.raises(CharterContentException):
         Charter(id_text="1", issued_place=incorrect_element)
+
+
+# --------------------------------------------------------------------#
+#                           Charter issuer                           #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_abstract_with_text_issuer():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    issuer = "Konrad von Lintz"
+    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
+    assert isinstance(charter.issuer, str)
+    assert charter.issuer == issuer
+    issuer_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
+    assert issuer_xml.text == issuer
+
+
+def test_has_correct_abstract_with_xml_issuer():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    issuer = CEI.issuer("Konrad von Lintz")
+    assert isinstance(issuer, etree._Element)
+    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
+    assert isinstance(charter.issuer, etree._Element)
+    assert charter.issuer.text == issuer.text
+    issuer_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
+    assert issuer_xml.text == issuer.text
 
 
 def test_raises_exception_for_incorrect_xml_issuer():
@@ -464,20 +491,43 @@ def test_raises_exception_for_incorrect_xml_issuer():
         Charter(id_text="1", issuer=incorrect_element)
 
 
-def test_raises_exception_for_incorrect_xml_recipient():
-    incorrect_element = CEI.issuer("A person")
-    with pytest.raises(CharterContentException):
-        Charter(id_text="1", recipient=incorrect_element)
-
-
-def test_raises_exception_for_missing_id():
-    with pytest.raises(CharterContentException):
-        Charter(id_text="")
-
-
 def test_raises_exception_for_xml_abstract_with_issuer():
     with pytest.raises(CharterContentException):
         Charter(id_text="1", abstract=CEI.abstract("An abstract"), issuer="An issuer")
+
+
+# --------------------------------------------------------------------#
+#                         Charter recipient                          #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_abstract_with_text_recipient():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    recipient = "Heinrich Müller"
+    charter = Charter(id_text="1", abstract=abstract, recipient=recipient)
+    assert isinstance(charter.recipient, str)
+    assert charter.recipient == recipient
+    recipient_xml = _xps(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:recipient"
+    )
+    assert recipient_xml.text == recipient
+
+
+def test_has_correct_abstract_with_xml_recipient():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    recipient = CEI.recipient("Heinrich Müller")
+    assert isinstance(recipient, etree._Element)
+    charter = Charter(id_text="1", abstract=abstract, recipient=recipient)
+    assert isinstance(charter.recipient, etree._Element)
+    assert charter.recipient.text == recipient.text
+    recipient_xml = _xps(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:recipient"
+    )
+    assert recipient_xml.text == recipient.text
 
 
 def test_raises_exception_for_xml_abstract_with_recipient():
@@ -487,17 +537,17 @@ def test_raises_exception_for_xml_abstract_with_recipient():
         )
 
 
-def test_raises_exception_when_initializing_with_xml_date_and_value():
-    date_value = "17980101"
-    date = CEI.date("12. 10. 1789", {"value": date_value})
+def test_raises_exception_for_incorrect_xml_recipient():
+    incorrect_element = CEI.issuer("A person")
     with pytest.raises(CharterContentException):
-        Charter(id_text="1", date=date, date_value=date_value)
+        Charter(id_text="1", recipient=incorrect_element)
 
 
-def test_raises_exception_when_setting_date_value_for_xml_date():
-    date_from = "17980101"
-    date_to = "17981231"
-    date = CEI.dateRange("12. 10. 1789", {"from": date_from, "to": date_to})
-    charter = Charter(id_text="1", date=date)
-    with pytest.raises(CharterContentException):
-        charter.date_value = (date_from, date_to)
+# --------------------------------------------------------------------#
+#                            Charter type                            #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_type():
+    charter = Charter(id_text="1").to_xml()
+    assert charter.get("type") == "charter"
