@@ -129,6 +129,7 @@ class Charter:
     _issued_place: StrOrElement = None
     _issuer: StrOrElement = None
     _recipient: StrOrElement = None
+    _tradition_form: Optional[str] = None
     _transcription_bibls: List[str] = []
 
     def __init__(
@@ -143,6 +144,7 @@ class Charter:
         issued_place: StrOrElement = None,
         issuer: StrOrElement = None,
         recipient: StrOrElement = None,
+        tradition_form: Optional[str] = None,
         transcription_bibls: str | List[str] = [],
     ) -> None:
         """
@@ -170,6 +172,8 @@ class Charter:
 
         recipient: The recipient of the charter either as text or a complete cei:issuer etree._Element.
 
+        tradition_form: The form of the charter's tradition, as an original, copy or something else. Can be any free text.
+
         transcription_bibls: The bibliography source or sources for the transcription.
         ----------
         """
@@ -186,6 +190,7 @@ class Charter:
         self.issued_place = issued_place
         self.issuer = issuer
         self.recipient = recipient
+        self.tradition_form = tradition_form
         self.transcription_bibls = transcription_bibls
 
     # --------------------------------------------------------------------#
@@ -336,6 +341,14 @@ class Charter:
         self._recipient = validate_element(value, "recipient")
 
     @property
+    def tradition_form(self):
+        return self._tradition_form
+
+    @tradition_form.setter
+    def tradition_form(self, value: Optional[str]):
+        self._tradition_form = value
+
+    @property
     def transcription_bibls(self):
         return self._transcription_bibls
 
@@ -363,7 +376,11 @@ class Charter:
         return CEI.body(*children)
 
     def _create_cei_chdesc(self) -> Optional[etree._Element]:
-        children = join(self._create_cei_abstract(), self._create_cei_issued())
+        children = join(
+            self._create_cei_abstract(),
+            self._create_cei_issued(),
+            self._create_cei_witness_orig(),
+        )
         return CEI.chDesc(*children) if len(children) else None
 
     def _create_cei_date(self) -> etree._Element:
@@ -462,6 +479,15 @@ class Charter:
             self._create_cei_back(),
             type="charter",
         )
+
+    def _create_cei_traditio_form(self) -> Optional[etree._Element]:
+        return (
+            None if not self._tradition_form else CEI.traditioForm(self._tradition_form)
+        )
+
+    def _create_cei_witness_orig(self) -> Optional[etree._Element]:
+        children = join(self._create_cei_traditio_form())
+        return None if len(children) == 0 else CEI.witnessOrig(*children)
 
     # --------------------------------------------------------------------#
     #                          Private methods                           #

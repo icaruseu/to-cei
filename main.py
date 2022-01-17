@@ -10,9 +10,10 @@ if __name__ == "__main__":
             abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
             date="1307 II 22",
             date_value="13070222",
+            issued_place="Wiener",
             issuer="Konrad von Lintz",
             recipient="Heinrich, des Praitenvelders Schreiber",
+            tradition_form="orig.",
             transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
-            issued_place="Wiener",
         ).to_string()
     )

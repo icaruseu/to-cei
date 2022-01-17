@@ -16,7 +16,7 @@ from model.validator import Validator
 
 
 def _e(value: Any) -> List[etree._Element]:
-    """Makes sure that the provided value is a List of etree._Elements."""
+    """Makes sure that the provided value is a List of etree._Elements. Raises an exception otherwise."""
     if not isinstance(value, List):
         raise Exception("Not a list")
     list: List[etree._Element] = value
@@ -80,10 +80,11 @@ def test_is_valid_charter():
         abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
         date="1307 II 22",
         date_value=Time("1307-02-22", format="isot", scale="ut1"),
+        issued_place="Wiener",
         issuer="Konrad von Lintz",
         recipient="Heinrich, des Praitenvelders Schreiber",
+        tradition_form="orig.",
         transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
-        issued_place="Wiener",
     )
     Validator().validate_cei(charter.to_xml())
 
@@ -541,6 +542,21 @@ def test_raises_exception_for_incorrect_xml_recipient():
     incorrect_element = CEI.issuer("A person")
     with pytest.raises(CharterContentException):
         Charter(id_text="1", recipient=incorrect_element)
+
+
+# --------------------------------------------------------------------#
+#                       Charter tradition form                       #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_tradition_form():
+    tradition_form = "orig."
+    charter = Charter(id_text="1", tradition_form=tradition_form)
+    assert charter.tradition_form == tradition_form
+    tradition_form_xml = _xps(
+        charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:traditioForm"
+    )
+    assert tradition_form_xml.text == tradition_form
 
 
 # --------------------------------------------------------------------#
