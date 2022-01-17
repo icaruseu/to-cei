@@ -13,8 +13,8 @@ class CharterContentException(Exception):
 
 
 CEI_NS: str = "http://www.monasterium.net/NS/cei"
-CEI = ElementMaker(namespace=CEI_NS, nsmap={None: CEI_NS})
 CHARTER_NSS = {"cei": CEI_NS}
+CEI = ElementMaker(namespace=CEI_NS, nsmap=CHARTER_NSS)
 
 MOM_DATE_REGEX = re.compile(
     r"^(?P<year>-?[129]?[0-9][0-9][0-9])(?P<month>[019][0-9])(?P<day>[01239][0-9])$"
