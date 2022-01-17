@@ -132,7 +132,7 @@ class Charter:
     _date: StrOrElement = None
     _date_value: Optional[Time | Tuple[Time, Time]] = None
     _graphic_urls: List[str] = []
-    _id_norm: str = ""
+    _id_norm: Optional[str] = None
     _id_old: Optional[str] = None
     _id_text: str = ""
     _issued_place: StrOrElement = None
@@ -197,7 +197,7 @@ class Charter:
         if date_value is not None:
             self.date_value = date_value
         self.graphic_urls = graphic_urls
-        self.id_norm = id_norm if id_norm else id_text
+        self.id_norm = id_norm
         self.id_old = id_old
         self.id_text = id_text
         self.issued_place = issued_place
@@ -227,7 +227,7 @@ class Charter:
         return self._abstract_bibls
 
     @abstract_bibls.setter
-    def abstract_bibls(self, value: str | List[str]):
+    def abstract_bibls(self, value: str | List[str] = []):
         self._abstract_bibls = value if isinstance(value, List) else [value]
 
     @property
@@ -235,7 +235,7 @@ class Charter:
         return self._date
 
     @date.setter
-    def date(self, value: StrOrElement):
+    def date(self, value: StrOrElement = None):
         self._date = validate_element(value, "date", "dateRange")
 
     @property
@@ -243,7 +243,7 @@ class Charter:
         return self._date_value
 
     @date_value.setter
-    def date_value(self, value: DateValue):
+    def date_value(self, value: DateValue = None):
         # Don't allow to directly set date values if an XML date element is present
         if isinstance(self.date, etree._Element):
             raise CharterContentException(
@@ -307,18 +307,18 @@ class Charter:
 
     @property
     def id_norm(self):
-        return self._id_norm
+        return quote(self._id_norm if self._id_norm else self.id_text)
 
     @id_norm.setter
-    def id_norm(self, value: str):
-        self._id_norm = quote(value)
+    def id_norm(self, value: Optional[str] = None):
+        self._id_norm = value
 
     @property
     def id_old(self):
         return self._id_old
 
     @id_old.setter
-    def id_old(self, value: Optional[str]):
+    def id_old(self, value: Optional[str] = None):
         self._id_old = value
 
     @property
@@ -334,7 +334,7 @@ class Charter:
         return self._issued_place
 
     @issued_place.setter
-    def issued_place(self, value: StrOrElement):
+    def issued_place(self, value: StrOrElement = None):
         self._issued_place = validate_element(value, "placeName")
 
     @property
@@ -342,7 +342,7 @@ class Charter:
         return self._issuer
 
     @issuer.setter
-    def issuer(self, value: StrOrElement):
+    def issuer(self, value: StrOrElement = None):
         if value is not None and isinstance(self.abstract, etree._Element):
             raise CharterContentException(
                 "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
@@ -354,7 +354,7 @@ class Charter:
         return self._recipient
 
     @recipient.setter
-    def recipient(self, value: StrOrElement):
+    def recipient(self, value: StrOrElement = None):
         if value is not None and isinstance(self.abstract, etree._Element):
             raise CharterContentException(
                 "XML element content for both recipient and abstract is not allowed, please join the recipient in the XML abstract yourself"
@@ -366,7 +366,7 @@ class Charter:
         return self._tradition_form
 
     @tradition_form.setter
-    def tradition_form(self, value: Optional[str]):
+    def tradition_form(self, value: Optional[str] = None):
         self._tradition_form = value
 
     @property
@@ -374,7 +374,7 @@ class Charter:
         return self._transcription_bibls
 
     @transcription_bibls.setter
-    def transcription_bibls(self, value: str | List[str]):
+    def transcription_bibls(self, value: str | List[str] = []):
         self._transcription_bibls = value if isinstance(value, List) else [value]
 
     # --------------------------------------------------------------------#
