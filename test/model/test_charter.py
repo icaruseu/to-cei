@@ -88,6 +88,7 @@ def test_is_valid_charter():
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
         issued_place="Wiener Neustadt",
         issuer="Konrad von Lintz",
+        material="Pergament",
         recipient="Heinrich, des Praitenvelders Schreiber",
         tradition_form="orig.",
         transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
@@ -572,6 +573,17 @@ def test_raises_exception_for_xml_abstract_with_issuer():
     with pytest.raises(CharterContentException):
         Charter(id_text="1", abstract=CEI.abstract("An abstract"), issuer="An issuer")
 
+
+#--------------------------------------------------------------------#
+#                          Charter material                          #
+#--------------------------------------------------------------------#
+
+def test_has_correct_material():
+    material = "Material"
+    charter = Charter(id_text="1", material=material)
+    assert charter.material == material
+    material_xml = _xps(charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:physicalDesc/cei:material")
+    assert material_xml.text == material
 
 # --------------------------------------------------------------------#
 #                         Charter recipient                          #

@@ -14,6 +14,7 @@ if __name__ == "__main__":
             ],
             issued_place="Wiener Neustadt",
             issuer="Konrad von Lintz",
+            material="Pergament",
             recipient="Heinrich, des Praitenvelders Schreiber",
             tradition_form="orig.",
             transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",

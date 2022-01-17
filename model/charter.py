@@ -138,6 +138,7 @@ class Charter:
     _id_text: str = ""
     _issued_place: StrOrElement = None
     _issuer: StrOrElement = None
+    _material: Optional[str] = None
     _recipient: StrOrElement = None
     _tradition_form: Optional[str] = None
     _transcription_bibls: List[str] = []
@@ -155,6 +156,7 @@ class Charter:
         id_old: Optional[str] = None,
         issued_place: StrOrElement = None,
         issuer: StrOrElement = None,
+        material: Optional[str] = None,
         recipient: StrOrElement = None,
         tradition_form: Optional[str] = None,
         transcription_bibls: str | List[str] = [],
@@ -188,6 +190,8 @@ class Charter:
 
         recipient: The recipient of the charter either as text or a complete cei:issuer etree._Element.
 
+        material: A string description of the material the charter is made of.
+
         tradition_form: The form of the charter's tradition, as an original, copy or something else. Can be any free text.
 
         transcription_bibls: The bibliography source or sources for the transcription.
@@ -207,6 +211,7 @@ class Charter:
         self.id_text = id_text
         self.issued_place = issued_place
         self.issuer = issuer
+        self.material = material
         self.recipient = recipient
         self.tradition_form = tradition_form
         self.transcription_bibls = transcription_bibls
@@ -363,6 +368,14 @@ class Charter:
         self._issuer = validate_element(value, "issuer")
 
     @property
+    def material(self):
+        return self._material
+
+    @material.setter
+    def material(self, value: Optional[str] = None):
+        self._material = value
+
+    @property
     def recipient(self):
         return self._recipient
 
@@ -454,9 +467,9 @@ class Charter:
 
     def _create_cei_figures(self) -> List[etree._Element]:
         return (
-            []
-            if len(self.graphic_urls) == 0
-            else [CEI.figure(CEI.graphic({"url": url})) for url in self.graphic_urls]
+            [CEI.figure(CEI.graphic({"url": url})) for url in self.graphic_urls]
+            if len(self.graphic_urls)
+            else []
         )
 
     def _create_cei_front(self) -> etree._Element:
@@ -483,6 +496,13 @@ class Charter:
                 CEI.issuer(self.issuer) if isinstance(self.issuer, str) else self.issuer
             )
         )
+
+    def _create_cei_material(self) -> Optional[etree._Element]:
+        return None if self.material is None else CEI.material(self.material)
+
+    def _create_cei_physical_desc(self) -> Optional[etree._Element]:
+        children = join(self._create_cei_material())
+        return CEI.physicalDesc(*children) if len(children) else None
 
     def _create_cei_place_name(self, value: StrOrElement) -> Optional[etree._Element]:
         return (
@@ -534,8 +554,9 @@ class Charter:
             self._create_cei_traditio_form(),
             self._create_cei_figures(),
             self._create_cei_arch_identifier(),
+            self._create_cei_physical_desc(),
         )
-        return None if len(children) == 0 else CEI.witnessOrig(*children)
+        return CEI.witnessOrig(*children) if len(children) else None
 
     # --------------------------------------------------------------------#
     #                          Private methods                           #
