@@ -129,6 +129,7 @@ def validate_element(value: StrOrElement, *tags: str) -> StrOrElement:
 class Charter:
     _abstract: StrOrElement = None
     _abstract_bibls: List[str] = []
+    _archive: Optional[str] = None
     _date: StrOrElement = None
     _date_value: Optional[Time | Tuple[Time, Time]] = None
     _graphic_urls: List[str] = []
@@ -146,6 +147,7 @@ class Charter:
         id_text: str,
         abstract: StrOrElement = None,
         abstract_bibls: str | List[str] = [],
+        archive: Optional[str] = None,
         date: StrOrElement = None,
         date_value: DateValue = None,
         graphic_urls: str | List[str] = [],
@@ -167,6 +169,8 @@ class Charter:
         abstract: The abstract either as a simple text or a complete cei:abstract etree._Element.
 
         abstract_bibls: The bibliography source or sources for the abstract.
+
+        archive: The name of the archive that owns the original charter.
 
         date: The date the charter was issued at either as text to use when converting to CEI or a complete cei:date or cei:dateRange etree._Element. If the date is given as an XML element, date_value needs to remain emptyself. Missing values will be constructed as having a date of "No date" in the XML.
 
@@ -193,6 +197,7 @@ class Charter:
             raise CharterContentException("id_text is not allowed to be empty")
         self.abstract = abstract
         self.abstract_bibls = abstract_bibls
+        self.archive = archive
         self.date = date
         if date_value is not None:
             self.date_value = date_value
@@ -229,6 +234,14 @@ class Charter:
     @abstract_bibls.setter
     def abstract_bibls(self, value: str | List[str] = []):
         self._abstract_bibls = value if isinstance(value, List) else [value]
+
+    @property
+    def archive(self):
+        return self._archive
+
+    @archive.setter
+    def archive(self, value: Optional[str] = None):
+        self._archive = value
 
     @property
     def date(self):
@@ -389,6 +402,9 @@ class Charter:
             else self.abstract
         )
 
+    def _create_cei_arch_identifier(self) -> Optional[etree._Element]:
+        return None if not self.archive else CEI.archIdentifier(CEI.arch(self.archive))
+
     def _create_cei_back(self) -> etree._Element:
         return CEI.back()
 
@@ -514,7 +530,11 @@ class Charter:
         )
 
     def _create_cei_witness_orig(self) -> Optional[etree._Element]:
-        children = join(self._create_cei_traditio_form(), self._create_cei_figures())
+        children = join(
+            self._create_cei_traditio_form(),
+            self._create_cei_figures(),
+            self._create_cei_arch_identifier(),
+        )
         return None if len(children) == 0 else CEI.witnessOrig(*children)
 
     # --------------------------------------------------------------------#

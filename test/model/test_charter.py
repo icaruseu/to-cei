@@ -82,6 +82,7 @@ def test_is_valid_charter():
         "1307 II 22",
         abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
         abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
+        archive="Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)",
         date="1307 II 22",
         date_value=Time("1307-02-22", format="isot", scale="ut1"),
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
@@ -132,7 +133,23 @@ def test_raises_exception_for_incorrect_xml_abstract():
 
 
 # --------------------------------------------------------------------#
-#                           Bibliographies                           #
+#                          Charter archive                           #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_charter_archive():
+    archive = "Archive 1"
+    charter = Charter(id_text="1", archive=archive)
+    assert charter.archive == archive
+    archive_xml = _xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:archIdentifier/cei:arch",
+    )
+    assert archive_xml.text == archive
+
+
+# --------------------------------------------------------------------#
+#                       Charter bibliographies                       #
 # --------------------------------------------------------------------#
 
 

@@ -6,6 +6,7 @@ if __name__ == "__main__":
             "1307 II 22",
             abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
             abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
+            archive="Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)",
             date="1307 II 22",
             date_value="13070222",
             graphic_urls=[
