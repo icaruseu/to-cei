@@ -361,7 +361,34 @@ def test_raises_exception_when_initializing_with_xml_date_and_value():
         Charter(id_text="1", date=date, date_value=date_value)
 
 
-def test_raises_exception_for_incorrect_date_value():
+def test_raises_exception_for_invalid_date_value():
+    with pytest.raises(ValueError):
+        Charter(
+            id_text="1",
+            date="in 1789",
+            date_value="17980231",  # 31st February doesn't exist
+        )
+
+
+def test_raises_exception_for_invalid_date_value_in_iso_format():
+    with pytest.raises(CharterContentException):
+        Charter(
+            id_text="1",
+            date="in 1789",
+            date_value="1798-02-311",  # One additional digit
+        )
+
+
+def test_raises_exception_for_invalid_date_value_in_mom_format():
+    with pytest.raises(CharterContentException):
+        Charter(
+            id_text="1",
+            date="in 1789",
+            date_value="179802311",  # One additional digit
+        )
+
+
+def test_raises_exception_for_incorrect_date_value_pair():
     with pytest.raises(CharterContentException):
         Charter(
             id_text="1",

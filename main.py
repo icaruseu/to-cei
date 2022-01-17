@@ -1,5 +1,3 @@
-from astropy.time.core import Time
-
 from model.charter import Charter
 
 if __name__ == "__main__":
