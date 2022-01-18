@@ -151,6 +151,8 @@ class Charter(XmlAssembler):
 
         recipient: The recipient of the charter either as text or a complete cei:issuer etree._Element.
 
+        language: The language of the charter as text.
+
         material: A string description of the material the charter is made of.
 
         seal_descriptions: The description of the seals of a charter, either as a single/list of simple text descriptions or Seal objects, or a complete cei:sealDesc etree._Element object.
