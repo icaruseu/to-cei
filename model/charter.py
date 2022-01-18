@@ -104,28 +104,26 @@ class Charter(XmlAssembler):
     def __init__(
         self,
         id_text: str,
-        abstract: Optional[str | etree._Element] = None,
+        abstract: str | etree._Element = None,
         abstract_bibls: str | List[str] = [],
-        archive: Optional[str] = None,
-        condition: Optional[str] = None,
-        date: Optional[str | etree._Element] = None,
-        date_quote: Optional[str | etree._Element] = None,
+        archive: str = None,
+        condition: str = None,
+        date: str | etree._Element = None,
+        date_quote: str | etree._Element = None,
         date_value: DateValue = None,
-        dimensions: Optional[str] = None,
+        dimensions: str = None,
         graphic_urls: str | List[str] = [],
-        id_norm: Optional[str] = None,
-        id_old: Optional[str] = None,
-        issued_place: Optional[str | etree._Element] = None,
-        issuer: Optional[str | etree._Element] = None,
-        language: Optional[str] = None,
-        material: Optional[str] = None,
-        notarial_authentication: Optional[str | etree._Element] = None,
-        recipient: Optional[str | etree._Element] = None,
-        seal_descriptions: Optional[
-            etree._Element | str | Seal | List[str] | List[Seal]
-        ] = None,
-        tradition_form: Optional[str] = None,
-        transcription: Optional[str | etree._Element] = None,
+        id_norm: str = None,
+        id_old: str = None,
+        issued_place: str | etree._Element = None,
+        issuer: str | etree._Element = None,
+        language: str = None,
+        material: str = None,
+        notarial_authentication: str | etree._Element = None,
+        recipient: str | etree._Element = None,
+        seal_descriptions: etree._Element | str | Seal | List[str] | List[Seal] = None,
+        tradition_form: str = None,
+        transcription: str | etree._Element = None,
         transcription_bibls: str | List[str] = [],
     ) -> None:
         """
@@ -213,7 +211,7 @@ class Charter(XmlAssembler):
         return self._abstract
 
     @abstract.setter
-    def abstract(self, value: Optional[str | etree._Element] = None):
+    def abstract(self, value: str | etree._Element = None):
         if self.issuer is not None and isinstance(self.issuer, etree._Element):
             raise CeiException(
                 "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
@@ -233,15 +231,15 @@ class Charter(XmlAssembler):
         return self._archive
 
     @archive.setter
-    def archive(self, value: Optional[str] = None):
+    def archive(self, value: str = None):
         self._archive = value
-
+    
     @property
     def condition(self):
         return self._condition
 
     @condition.setter
-    def condition(self, value: Optional[str] = None):
+    def condition(self, value: str = None):
         self._condition = value
 
     @property
@@ -249,7 +247,7 @@ class Charter(XmlAssembler):
         return self._date
 
     @date.setter
-    def date(self, value: Optional[str | etree._Element] = None):
+    def date(self, value: str | etree._Element = None):
         self._date = validate_element(value, "date", "dateRange")
 
     @property
@@ -257,7 +255,7 @@ class Charter(XmlAssembler):
         return self._date_quote
 
     @date_quote.setter
-    def date_quote(self, value: Optional[str | etree._Element] = None):
+    def date_quote(self, value: str | etree._Element = None):
         self._date_quote = validate_element(value, "quoteOriginaldatierung")
 
     @property
@@ -324,7 +322,7 @@ class Charter(XmlAssembler):
         return self._dimensions
 
     @dimensions.setter
-    def dimensions(self, value: Optional[str] = None):
+    def dimensions(self, value: str = None):
         self._dimensions = value
 
     @property
@@ -340,7 +338,7 @@ class Charter(XmlAssembler):
         return quote(self._id_norm if self._id_norm else self.id_text)
 
     @id_norm.setter
-    def id_norm(self, value: Optional[str] = None):
+    def id_norm(self, value: str = None):
         self._id_norm = value
 
     @property
@@ -348,7 +346,7 @@ class Charter(XmlAssembler):
         return self._id_old
 
     @id_old.setter
-    def id_old(self, value: Optional[str] = None):
+    def id_old(self, value: str = None):
         self._id_old = value
 
     @property
@@ -364,7 +362,7 @@ class Charter(XmlAssembler):
         return self._issued_place
 
     @issued_place.setter
-    def issued_place(self, value: Optional[str | etree._Element] = None):
+    def issued_place(self, value: str | etree._Element = None):
         self._issued_place = validate_element(value, "placeName")
 
     @property
@@ -372,7 +370,7 @@ class Charter(XmlAssembler):
         return self._issuer
 
     @issuer.setter
-    def issuer(self, value: Optional[str | etree._Element] = None):
+    def issuer(self, value: str | etree._Element = None):
         if value is not None and isinstance(self.abstract, etree._Element):
             raise CeiException(
                 "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
@@ -384,7 +382,7 @@ class Charter(XmlAssembler):
         return self._language
 
     @language.setter
-    def language(self, value: Optional[str] = None):
+    def language(self, value: str = None):
         self._language = value
 
     @property
@@ -392,7 +390,7 @@ class Charter(XmlAssembler):
         return self._material
 
     @material.setter
-    def material(self, value: Optional[str] = None):
+    def material(self, value: str = None):
         self._material = value
 
     @property
@@ -400,7 +398,7 @@ class Charter(XmlAssembler):
         return self._notarial_authentication
 
     @notarial_authentication.setter
-    def notarial_authentication(self, value: Optional[str | etree._Element] = None):
+    def notarial_authentication(self, value: str | etree._Element = None):
         self._notarial_authentication = validate_element(value, "notariusDesc")
 
     @property
@@ -408,7 +406,7 @@ class Charter(XmlAssembler):
         return self._recipient
 
     @recipient.setter
-    def recipient(self, value: Optional[str | etree._Element] = None):
+    def recipient(self, value: str | etree._Element = None):
         if value is not None and isinstance(self.abstract, etree._Element):
             raise CeiException(
                 "XML element content for both recipient and abstract is not allowed, please join the recipient in the XML abstract yourself"
@@ -422,7 +420,7 @@ class Charter(XmlAssembler):
     @seal_descriptions.setter
     def seal_descriptions(
         self,
-        value: Optional[etree._Element | str | Seal | List[str] | List[Seal]] = None,
+        value: etree._Element | str | Seal | List[str] | List[Seal] = None,
     ):
         validated = (
             validate_element(value, "sealDesc")
@@ -439,7 +437,7 @@ class Charter(XmlAssembler):
         return self._tradition_form
 
     @tradition_form.setter
-    def tradition_form(self, value: Optional[str] = None):
+    def tradition_form(self, value: str = None):
         self._tradition_form = value
 
     @property
@@ -447,7 +445,7 @@ class Charter(XmlAssembler):
         return self._transcription
 
     @transcription.setter
-    def transcription(self, value: Optional[str | etree._Element] = None):
+    def transcription(self, value: str | etree._Element = None):
         self._transcription = validate_element(value, "tenor")
 
     @property

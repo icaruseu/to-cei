@@ -16,11 +16,11 @@ class Seal(XmlAssembler):
 
     def __init__(
         self,
-        condition: Optional[str] = None,
-        dimensions: Optional[str] = None,
-        legend: Optional[str] | List[Tuple[str, str]] = [],
-        material: Optional[str] = None,
-        sigillant: Optional[str | etree._Element] = None,
+        condition: str = None,
+        dimensions: str = None,
+        legend: str | List[Tuple[str, str]] = [],
+        material: str = None,
+        sigillant: str | etree._Element = None,
     ) -> None:
         """
         Creates a seal instance.
@@ -43,12 +43,16 @@ class Seal(XmlAssembler):
         self.material = material
         self.sigillant = sigillant
 
+    # --------------------------------------------------------------------#
+    #                             Properties                             #
+    # --------------------------------------------------------------------#
+
     @property
     def condition(self):
         return self._condition
 
     @condition.setter
-    def condition(self, value: Optional[str] = None):
+    def condition(self, value: str = None):
         self._condition = value
 
     @property
@@ -56,7 +60,7 @@ class Seal(XmlAssembler):
         return self._dimensions
 
     @dimensions.setter
-    def dimensions(self, value: Optional[str] = None):
+    def dimensions(self, value: str = None):
         self._dimensions = value
 
     @property
@@ -64,15 +68,15 @@ class Seal(XmlAssembler):
         return self._legend
 
     @legend.setter
-    def legend(self, value: Optional[str] | List[Tuple[str, str]] = []):
-        self._legend = [] if value is None else (value)
+    def legend(self, value: str | List[Tuple[str, str]] = []):
+        self._legend = value
 
     @property
     def material(self):
         return self._material
 
     @material.setter
-    def material(self, value: Optional[str] = None):
+    def material(self, value: str = None):
         self._material = value
 
     @property
@@ -80,8 +84,12 @@ class Seal(XmlAssembler):
         return self._sigillant
 
     @sigillant.setter
-    def sigillant(self, value: Optional[str | etree._Element] = None):
+    def sigillant(self, value: str | etree._Element = None):
         self._sigillant = validate_element(value, "persName", "orgName")
+
+    # --------------------------------------------------------------------#
+    #                           Public methods                           #
+    # --------------------------------------------------------------------#
 
     def to_xml(self) -> Optional[etree._Element]:
         children = []
