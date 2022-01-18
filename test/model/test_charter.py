@@ -42,7 +42,7 @@ def test_is_valid_charter():
         issuer="Konrad von Lintz",
         language="Deutsch",
         material="Pergament",
-        notarization="Albertus Magnus",
+        notarial_authentication="Albertus Magnus",
         seal_descriptions="2 Siegel",
         recipient="Heinrich, des Praitenvelders Schreiber",
         tradition_form="orig.",
@@ -630,36 +630,36 @@ def test_has_correct_material():
 
 
 # --------------------------------------------------------------------#
-#                        Charter notarization                        #
+#                        Charter notarial authentication             #
 # --------------------------------------------------------------------#
 
 
-def test_has_correct_text_notarization():
-    notarization = "A notarization"
-    charter = Charter(id_text="1", notarization=notarization)
-    assert charter.notarization == notarization
-    notarization_xml = xps(
+def test_has_correct_text_notarial_authentication():
+    notarial_authentication = "A notarial authentication"
+    charter = Charter(id_text="1", notarial_authentication=notarial_authentication)
+    assert charter.notarial_authentication == notarial_authentication
+    notarial_authentication_xml = xps(
         charter,
         "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:notariusDesc",
     )
-    assert notarization_xml.text == notarization
+    assert notarial_authentication_xml.text == notarial_authentication
 
 
-def test_has_correct_xml_notarization():
-    notarization = CEI.notariusDesc("A xml notarization")
-    charter = Charter(id_text="1", notarization=notarization)
-    assert charter.notarization == notarization
-    notarization_xml = xps(
+def test_has_correct_xml_notarial_authentication():
+    notarial_authentication = CEI.notariusDesc("An xml notarial authentication")
+    charter = Charter(id_text="1", notarial_authentication=notarial_authentication)
+    assert charter.notarial_authentication == notarial_authentication
+    notarial_authentication_xml = xps(
         charter,
         "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:notariusDesc",
     )
-    assert notarization_xml.text == notarization.text
+    assert notarial_authentication_xml.text == notarial_authentication.text
 
 
-def test_raises_exception_for_incorrect_xml_notarization():
+def test_raises_exception_for_incorrect_xml_notarial_authentication():
     incorrect_element = CEI.persName("A person")
     with pytest.raises(CeiException):
-        Charter(id_text="1", notarization=incorrect_element)
+        Charter(id_text="1", notarial_authentication=incorrect_element)
 
 
 # --------------------------------------------------------------------#
