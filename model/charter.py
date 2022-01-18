@@ -79,6 +79,7 @@ class Charter(XmlAssembler):
     _abstract: Optional[str | etree._Element] = None
     _abstract_bibls: List[str] = []
     _archive: Optional[str] = None
+    _chancellary_remarks: List[str] = []
     _condition: Optional[str] = None
     _date: Optional[str | etree._Element] = None
     _date_quote: Optional[str | etree._Element] = None
@@ -107,6 +108,7 @@ class Charter(XmlAssembler):
         abstract: str | etree._Element = None,
         abstract_bibls: str | List[str] = [],
         archive: str = None,
+        chancellary_remarks: str | List[str] = [],
         condition: str = None,
         date: str | etree._Element = None,
         date_quote: str | etree._Element = None,
@@ -138,6 +140,8 @@ class Charter(XmlAssembler):
         abstract_bibls: The bibliography source or sources for the abstract.
 
         archive: The name of the archive that owns the original charter.
+
+        chancellary_remarks: Chancellary remarks as a single text or list of texts.
 
         condition: A description of the charter's condition in text form.
 
@@ -181,6 +185,7 @@ class Charter(XmlAssembler):
         self.abstract = abstract
         self.abstract_bibls = abstract_bibls
         self.archive = archive
+        self.chancellary_remarks = chancellary_remarks
         self.condition = condition
         self.date = date
         self.date_quote = date_quote
@@ -233,7 +238,15 @@ class Charter(XmlAssembler):
     @archive.setter
     def archive(self, value: str = None):
         self._archive = value
-    
+
+    @property
+    def chancellary_remarks(self):
+        return self._chancellary_remarks
+
+    @chancellary_remarks.setter
+    def chancellary_remarks(self, value: str | List[str] = []):
+        self._chancellary_remarks = [value] if isinstance(value, str) else value
+
     @property
     def condition(self):
         return self._condition
@@ -574,6 +587,9 @@ class Charter(XmlAssembler):
     def _create_cei_material(self) -> Optional[etree._Element]:
         return None if self.material is None else CEI.material(self.material)
 
+    def _create_cei_nota(self) -> List[etree._Element]:
+        return [CEI.nota(nota) for nota in self.chancellary_remarks]
+
     def _create_cei_notarius_desc(self) -> Optional[etree._Element]:
         return (
             self.notarial_authentication
@@ -673,10 +689,11 @@ class Charter(XmlAssembler):
     def _create_cei_witness_orig(self) -> Optional[etree._Element]:
         children = join(
             self._create_cei_traditio_form(),
-            self._create_cei_figures(),
             self._create_cei_arch_identifier(),
-            self._create_cei_physical_desc(),
             self._create_cei_auth(),
+            self._create_cei_physical_desc(),
+            self._create_cei_nota(),
+            self._create_cei_figures(),
         )
         return CEI.witnessOrig(*children) if len(children) else None
 

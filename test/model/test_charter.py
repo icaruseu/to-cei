@@ -32,6 +32,10 @@ def test_is_valid_charter():
         abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
         abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
         archive="Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)",
+        chancellary_remarks=[
+            "commissio domini imperatoris in consilio",
+            "Jüngerer Dorsualvermerk mit Regest",
+        ],
         condition="Beschädigtes Pergament",
         date="1307 II 22",
         date_quote="an sand peters tage in der vasten, als er avf den stvl ze Rome gesatz wart",
@@ -158,6 +162,30 @@ def test_has_correct_transcription_bibls():
     assert len(bibls) == 2
     assert bibls[0].text == bibl_texts[0]
     assert bibls[1].text == bibl_texts[1]
+
+
+# --------------------------------------------------------------------#
+#                    Charter chancellary remarks                     #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_single_chancellary_remark():
+    chancellary_remarks = "Remark"
+    charter = Charter(id_text="1", chancellary_remarks=chancellary_remarks)
+    assert isinstance(charter.chancellary_remarks, List)
+    assert charter._chancellary_remarks[0] == chancellary_remarks
+    nota = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:nota")
+    assert nota.text == chancellary_remarks
+
+
+def test_has_correct_chancellary_remarks_list():
+    chancellary_remarks = ["Remark a", "Remark b"]
+    charter = Charter(id_text="1", chancellary_remarks=chancellary_remarks)
+    assert charter._chancellary_remarks == chancellary_remarks
+    nota = xp(charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:nota")
+    assert len(nota) == 2
+    assert nota[0].text == chancellary_remarks[0]
+    assert nota[1].text == chancellary_remarks[1]
 
 
 # --------------------------------------------------------------------#
