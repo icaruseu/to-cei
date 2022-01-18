@@ -35,6 +35,7 @@ def test_is_valid_charter():
         date="1307 II 22",
         date_quote="an sand peters tage in der vasten, als er avf den stvl ze Rome gesatz wart",
         date_value=Time("1307-02-22", format="isot", scale="ut1"),
+        dimensions="20x20cm",
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
         issued_place="Wiener Neustadt",
         issuer="Konrad von Lintz",
@@ -422,6 +423,22 @@ def test_raises_exception_for_incorrect_xml_date_quote():
     incorrect_element = CEI.persName("A person")
     with pytest.raises(CeiException):
         Charter(id_text="1", date_quote=incorrect_element)
+
+
+# --------------------------------------------------------------------#
+#                         Charter dimensions                         #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_charter_dimensions():
+    dimensions = "Charter dimensions"
+    charter = Charter(id_text="1", dimensions=dimensions)
+    assert charter.dimensions == dimensions
+    dimensions_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:physicalDesc/cei:dimensions",
+    )
+    assert dimensions_xml.text == dimensions
 
 
 # --------------------------------------------------------------------#

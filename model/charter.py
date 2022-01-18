@@ -82,6 +82,7 @@ class Charter(XmlAssembler):
     _date: Optional[str | etree._Element] = None
     _date_quote: Optional[str | etree._Element] = None
     _date_value: Optional[Time | Tuple[Time, Time]] = None
+    _dimensions: Optional[str] = None
     _graphic_urls: List[str] = []
     _id_norm: Optional[str] = None
     _id_old: Optional[str] = None
@@ -108,6 +109,7 @@ class Charter(XmlAssembler):
         date: Optional[str | etree._Element] = None,
         date_quote: Optional[str | etree._Element] = None,
         date_value: DateValue = None,
+        dimensions: Optional[str] = None,
         graphic_urls: str | List[str] = [],
         id_norm: Optional[str] = None,
         id_old: Optional[str] = None,
@@ -142,6 +144,8 @@ class Charter(XmlAssembler):
         date_quote: The charter's date in the original text either as text or a complete cel:quoteOriginaldatierung etree._Element object.
 
         date_value: The actual date value in case the value in date is just a text and not an XML element. Can bei either an ISO date string, a MOM-compatible string, a python datetime object (can only be between years 1 and 9999) or an astropy Time object - or a tuple with two such values. If a single value is given, it is interpreted as an exact value, otherwise the two values will be used as from/to attributes of a cei:dateRange object. Missing values will be added to the xml as @value="99999999" to conform with the MOM data practices. When a date_value is added and date is an XML element, an exception is raised.
+
+        dimensions: The description of the physical dimensions of the charter as text.
 
         graphic_urls: A list of strings that represents the urls of various images representing the charter. Can bei either full urls or just the filenames of the image files, depending on the charter fond / collection settings.
 
@@ -179,6 +183,7 @@ class Charter(XmlAssembler):
         self.date_quote = date_quote
         if date_value is not None:
             self.date_value = date_value
+        self.dimensions = dimensions
         self.graphic_urls = graphic_urls
         self.id_norm = id_norm
         self.id_old = id_old
@@ -300,6 +305,14 @@ class Charter(XmlAssembler):
             self._date_value = string_to_time(value)  # type: ignore
         else:
             raise CeiException("Invalid date value: '{}'".format(value))
+
+    @property
+    def dimensions(self):
+        return self._dimensions
+
+    @dimensions.setter
+    def dimensions(self, value: Optional[str] = None):
+        self._dimensions = value
 
     @property
     def graphic_urls(self):
@@ -502,7 +515,10 @@ class Charter(XmlAssembler):
         # Nothing
         return CEI.date(NO_DATE_TEXT, {"value": NO_DATE_VALUE})
 
-    def _create_cei_diplomatic_analysis(self):
+    def _create_cei_dimensions(self) -> Optional[etree._Element]:
+        return None if self.dimensions is None else CEI.dimensions(self.dimensions)
+
+    def _create_cei_diplomatic_analysis(self) -> Optional[etree._Element]:
         children = join(self._create_cei_quote_originaldatierung())
         return CEI.diplomaticAnalysis(*children) if len(children) else None
 
@@ -553,7 +569,7 @@ class Charter(XmlAssembler):
         )
 
     def _create_cei_physical_desc(self) -> Optional[etree._Element]:
-        children = join(self._create_cei_material())
+        children = join(self._create_cei_material(), self._create_cei_dimensions())
         return CEI.physicalDesc(*children) if len(children) else None
 
     def _create_cei_place_name(

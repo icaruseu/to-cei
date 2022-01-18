@@ -10,6 +10,7 @@ if __name__ == "__main__":
             date="1307 II 22",
             date_quote="an sand peters tage in der vasten, als er avf den stvl ze Rome gesatz wart",
             date_value="13070222",
+            dimensions="20x20cm",
             graphic_urls=[
                 "K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"
             ],
