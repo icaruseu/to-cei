@@ -7,6 +7,7 @@ if __name__ == "__main__":
             abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
             abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
             archive="Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)",
+            condition="Beschädigtes Pergament",
             date="1307 II 22",
             date_quote="an sand peters tage in der vasten, als er avf den stvl ze Rome gesatz wart",
             date_value="13070222",

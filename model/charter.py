@@ -79,6 +79,7 @@ class Charter(XmlAssembler):
     _abstract: Optional[str | etree._Element] = None
     _abstract_bibls: List[str] = []
     _archive: Optional[str] = None
+    _condition: Optional[str] = None
     _date: Optional[str | etree._Element] = None
     _date_quote: Optional[str | etree._Element] = None
     _date_value: Optional[Time | Tuple[Time, Time]] = None
@@ -106,6 +107,7 @@ class Charter(XmlAssembler):
         abstract: Optional[str | etree._Element] = None,
         abstract_bibls: str | List[str] = [],
         archive: Optional[str] = None,
+        condition: Optional[str] = None,
         date: Optional[str | etree._Element] = None,
         date_quote: Optional[str | etree._Element] = None,
         date_value: DateValue = None,
@@ -138,6 +140,8 @@ class Charter(XmlAssembler):
         abstract_bibls: The bibliography source or sources for the abstract.
 
         archive: The name of the archive that owns the original charter.
+
+        condition: A description of the charter's condition in text form.
 
         date: The date the charter was issued at either as text to use when converting to CEI or a complete cei:date or cei:dateRange etree._Element. If the date is given as an XML element, date_value needs to remain emptyself. Missing values will be constructed as having a date of "No date" in the XML.
 
@@ -179,6 +183,7 @@ class Charter(XmlAssembler):
         self.abstract = abstract
         self.abstract_bibls = abstract_bibls
         self.archive = archive
+        self.condition = condition
         self.date = date
         self.date_quote = date_quote
         if date_value is not None:
@@ -230,6 +235,14 @@ class Charter(XmlAssembler):
     @archive.setter
     def archive(self, value: Optional[str] = None):
         self._archive = value
+
+    @property
+    def condition(self):
+        return self._condition
+
+    @condition.setter
+    def condition(self, value: Optional[str] = None):
+        self._condition = value
 
     @property
     def date(self):
@@ -483,6 +496,9 @@ class Charter(XmlAssembler):
         )
         return CEI.chDesc(*children) if len(children) else None
 
+    def _create_cei_condition(self) -> Optional[etree._Element]:
+        return None if self.condition is None else CEI.condition(self.condition)
+
     def _create_cei_date(self) -> etree._Element:
         # An xml date
         if isinstance(self.date, etree._Element):
@@ -569,7 +585,11 @@ class Charter(XmlAssembler):
         )
 
     def _create_cei_physical_desc(self) -> Optional[etree._Element]:
-        children = join(self._create_cei_material(), self._create_cei_dimensions())
+        children = join(
+            self._create_cei_material(),
+            self._create_cei_dimensions(),
+            self._create_cei_condition(),
+        )
         return CEI.physicalDesc(*children) if len(children) else None
 
     def _create_cei_place_name(

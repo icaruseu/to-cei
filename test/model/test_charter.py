@@ -32,6 +32,7 @@ def test_is_valid_charter():
         abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
         abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
         archive="Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)",
+        condition="Beschädigtes Pergament",
         date="1307 II 22",
         date_quote="an sand peters tage in der vasten, als er avf den stvl ze Rome gesatz wart",
         date_value=Time("1307-02-22", format="isot", scale="ut1"),
@@ -157,6 +158,22 @@ def test_has_correct_transcription_bibls():
     assert len(bibls) == 2
     assert bibls[0].text == bibl_texts[0]
     assert bibls[1].text == bibl_texts[1]
+
+
+# --------------------------------------------------------------------#
+#                         Charter condition                          #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_charter_condition():
+    condition = "Charter condition"
+    charter = Charter(id_text="1", condition=condition)
+    assert charter.condition == condition
+    condition_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:physicalDesc/cei:condition",
+    )
+    assert condition_xml.text == condition
 
 
 # --------------------------------------------------------------------#
