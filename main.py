@@ -20,6 +20,7 @@ if __name__ == "__main__":
             recipient="Heinrich, des Praitenvelders Schreiber",
             seal_descriptions="2 Siegel",
             tradition_form="orig.",
+            transcription="Ich Hainrich, des Praitenvelder Schreiber, [...] ze Rome gesatz wart.",
             transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
         ).to_string()
     )

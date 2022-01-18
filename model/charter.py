@@ -95,6 +95,7 @@ class Charter(XmlAssembler):
         etree._Element | str | Seal | List[str] | List[Seal]
     ] = None
     _tradition_form: Optional[str] = None
+    _transcription: Optional[str | etree._Element] = None
     _transcription_bibls: List[str] = []
 
     def __init__(
@@ -118,6 +119,7 @@ class Charter(XmlAssembler):
             etree._Element | str | Seal | List[str] | List[Seal]
         ] = None,
         tradition_form: Optional[str] = None,
+        transcription: Optional[str | etree._Element] = None,
         transcription_bibls: str | List[str] = [],
     ) -> None:
         """
@@ -159,6 +161,8 @@ class Charter(XmlAssembler):
 
         tradition_form: The form of the charter's tradition, as an original, copy or something else. Can be any free text.
 
+        transcription: The full text transcription of the charter either as text or a complete cei:tenor etree._Element object.
+
         transcription_bibls: The bibliography source or sources for the transcription.
         ----------
         """
@@ -182,6 +186,7 @@ class Charter(XmlAssembler):
         self.recipient = recipient
         self.seal_descriptions = seal_descriptions
         self.tradition_form = tradition_form
+        self.transcription = transcription
         self.transcription_bibls = transcription_bibls
 
     # --------------------------------------------------------------------#
@@ -399,6 +404,14 @@ class Charter(XmlAssembler):
         self._tradition_form = value
 
     @property
+    def transcription(self):
+        return self._transcription
+
+    @transcription.setter
+    def transcription(self, value: Optional[str | etree._Element] = None):
+        self._transcription = validate_element(value, "tenor")
+
+    @property
     def transcription_bibls(self):
         return self._transcription_bibls
 
@@ -429,7 +442,9 @@ class Charter(XmlAssembler):
         return CEI.back()
 
     def _create_cei_body(self) -> etree._Element:
-        children = join(self._create_cei_idno(), self._create_cei_chdesc())
+        children = join(
+            self._create_cei_idno(), self._create_cei_chdesc(), self._create_cei_tenor()
+        )
         return CEI.body(*children)
 
     def _create_cei_chdesc(self) -> Optional[etree._Element]:
@@ -438,7 +453,7 @@ class Charter(XmlAssembler):
             self._create_cei_issued(),
             self._create_cei_witness_orig(),
             self._create_cei_diplomatic_analysis(),
-            self._create_cei_lang_mom()
+            self._create_cei_lang_mom(),
         )
         return CEI.chDesc(*children) if len(children) else None
 
@@ -510,7 +525,7 @@ class Charter(XmlAssembler):
             )
         )
 
-    def _create_cei_lang_mom(self)-> Optional[etree._Element]:
+    def _create_cei_lang_mom(self) -> Optional[etree._Element]:
         return None if self.language is None else CEI.lang_MOM(self.language)
 
     def _create_cei_material(self) -> Optional[etree._Element]:
@@ -578,6 +593,14 @@ class Charter(XmlAssembler):
                 )
             )
         return CEI.sourceDesc(*children) if len(children) else None
+
+    def _create_cei_tenor(self) -> Optional[etree._Element]:
+        return (
+            self.transcription
+            if self.transcription is None
+            or isinstance(self.transcription, etree._Element)
+            else CEI.tenor(self.transcription)
+        )
 
     def _create_cei_text(self) -> etree._Element:
         return CEI.text(

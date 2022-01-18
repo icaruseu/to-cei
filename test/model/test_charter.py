@@ -43,6 +43,7 @@ def test_is_valid_charter():
         seal_descriptions="2 Siegel",
         recipient="Heinrich, des Praitenvelders Schreiber",
         tradition_form="orig.",
+        transcription="Ich Hainrich, des Praitenvelder Schreiber, [...] ze Rome gesatz wart.",
         transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
     )
     Validator().validate_cei(charter.to_xml())
@@ -720,6 +721,36 @@ def test_has_correct_multiple_seal_description_objects():
     assert seal_descriptions_xml[1].xpath(
         "cei:sigillant/text()", namespaces=CHARTER_NSS
     ) == ["Sigillant b"]
+
+
+# --------------------------------------------------------------------#
+#                       Charter transcription                        #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_text_transcription():
+    transcription = "A transcription"
+    charter = Charter(id_text="1", transcription=transcription)
+    assert charter.transcription == transcription
+    transcription_xml = xps(charter, "/cei:text/cei:body/cei:tenor")
+    assert transcription_xml.text == transcription
+
+
+def test_has_correct_xml_transcription():
+    transcription = CEI.tenor("Tenor with ", CEI.sup("a"), " superscript")
+    charter = Charter(id_text="1", transcription=transcription)
+    assert charter.transcription == transcription
+    superscript_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:tenor/cei:sup",
+    )
+    assert superscript_xml.text == "a"
+
+
+def test_raises_exception_for_incorrect_xml_transcription():
+    incorrect_element = CEI.persName("A person")
+    with pytest.raises(CeiException):
+        Charter(id_text="1", transcription=incorrect_element)
 
 
 # --------------------------------------------------------------------#
