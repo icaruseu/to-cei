@@ -1,0 +1,2 @@
+class CeiException(Exception):
+    pass
