@@ -90,6 +90,7 @@ class Charter(XmlAssembler):
     _issuer: Optional[str | etree._Element] = None
     _language: Optional[str] = None
     _material: Optional[str] = None
+    _notarization: Optional[str | etree._Element] = None
     _recipient: Optional[str | etree._Element] = None
     _seal_descriptions: Optional[
         etree._Element | str | Seal | List[str] | List[Seal]
@@ -114,6 +115,7 @@ class Charter(XmlAssembler):
         issuer: Optional[str | etree._Element] = None,
         language: Optional[str] = None,
         material: Optional[str] = None,
+        notarization: Optional[str | etree._Element] = None,
         recipient: Optional[str | etree._Element] = None,
         seal_descriptions: Optional[
             etree._Element | str | Seal | List[str] | List[Seal]
@@ -151,11 +153,13 @@ class Charter(XmlAssembler):
 
         issuer: The issuer of the charter either as text or a complete cei:issuer etree._Element.
 
-        recipient: The recipient of the charter either as text or a complete cei:issuer etree._Element.
-
         language: The language of the charter as text.
 
         material: A string description of the material the charter is made of.
+
+        notarization: A string or complete cei:notariusDesc etree._Element that describes the notarization of the charter.
+
+        recipient: The recipient of the charter either as text or a complete cei:issuer etree._Element.
 
         seal_descriptions: The description of the seals of a charter, either as a single/list of simple text descriptions or Seal objects, or a complete cei:sealDesc etree._Element object.
 
@@ -183,6 +187,7 @@ class Charter(XmlAssembler):
         self.issuer = issuer
         self.language = language
         self.material = material
+        self.notarization = notarization
         self.recipient = recipient
         self.seal_descriptions = seal_descriptions
         self.tradition_form = tradition_form
@@ -365,6 +370,14 @@ class Charter(XmlAssembler):
         self._material = value
 
     @property
+    def notarization(self):
+        return self._notarization
+
+    @notarization.setter
+    def notarization(self, value: Optional[str | etree._Element] = None):
+        self._notarization = validate_element(value, "notariusDesc")
+
+    @property
     def recipient(self):
         return self._recipient
 
@@ -435,7 +448,7 @@ class Charter(XmlAssembler):
         return None if not self.archive else CEI.archIdentifier(CEI.arch(self.archive))
 
     def _create_cei_auth(self) -> Optional[etree._Element]:
-        children = join(self._create_cei_seal_desc())
+        children = join(self._create_cei_notarius_desc(), self._create_cei_seal_desc())
         return CEI.auth(*children) if len(children) else None
 
     def _create_cei_back(self) -> etree._Element:
@@ -530,6 +543,14 @@ class Charter(XmlAssembler):
 
     def _create_cei_material(self) -> Optional[etree._Element]:
         return None if self.material is None else CEI.material(self.material)
+
+    def _create_cei_notarius_desc(self) -> Optional[etree._Element]:
+        return (
+            self.notarization
+            if self.notarization is None
+            or isinstance(self.notarization, etree._Element)
+            else CEI.notariusDesc(self.notarization)
+        )
 
     def _create_cei_physical_desc(self) -> Optional[etree._Element]:
         children = join(self._create_cei_material())

@@ -17,6 +17,7 @@ if __name__ == "__main__":
             issuer="Konrad von Lintz",
             language="Deutsch",
             material="Pergament",
+            notarization="Albertus Magnus",
             recipient="Heinrich, des Praitenvelders Schreiber",
             seal_descriptions="2 Siegel",
             tradition_form="orig.",

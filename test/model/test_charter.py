@@ -40,6 +40,7 @@ def test_is_valid_charter():
         issuer="Konrad von Lintz",
         language="Deutsch",
         material="Pergament",
+        notarization="Albertus Magnus",
         seal_descriptions="2 Siegel",
         recipient="Heinrich, des Praitenvelders Schreiber",
         tradition_form="orig.",
@@ -592,6 +593,39 @@ def test_has_correct_material():
         "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:physicalDesc/cei:material",
     )
     assert material_xml.text == material
+
+
+# --------------------------------------------------------------------#
+#                        Charter notarization                        #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_text_notarization():
+    notarization = "A notarization"
+    charter = Charter(id_text="1", notarization=notarization)
+    assert charter.notarization == notarization
+    notarization_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:notariusDesc",
+    )
+    assert notarization_xml.text == notarization
+
+
+def test_has_correct_xml_notarization():
+    notarization = CEI.notariusDesc("A xml notarization")
+    charter = Charter(id_text="1", notarization=notarization)
+    assert charter.notarization == notarization
+    notarization_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:notariusDesc",
+    )
+    assert notarization_xml.text == notarization.text
+
+
+def test_raises_exception_for_incorrect_xml_notarization():
+    incorrect_element = CEI.persName("A person")
+    with pytest.raises(CeiException):
+        Charter(id_text="1", notarization=incorrect_element)
 
 
 # --------------------------------------------------------------------#
