@@ -15,6 +15,7 @@ if __name__ == "__main__":
             ],
             issued_place="Wiener Neustadt",
             issuer="Konrad von Lintz",
+            language="Deutsch",
             material="Pergament",
             recipient="Heinrich, des Praitenvelders Schreiber",
             seal_descriptions="2 Siegel",

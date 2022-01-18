@@ -38,6 +38,7 @@ def test_is_valid_charter():
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
         issued_place="Wiener Neustadt",
         issuer="Konrad von Lintz",
+        language="Deutsch",
         material="Pergament",
         seal_descriptions="2 Siegel",
         recipient="Heinrich, des Praitenvelders Schreiber",
@@ -558,6 +559,22 @@ def test_raises_exception_for_incorrect_xml_issuer():
 def test_raises_exception_for_xml_abstract_with_issuer():
     with pytest.raises(CeiException):
         Charter(id_text="1", abstract=CEI.abstract("An abstract"), issuer="An issuer")
+
+
+# --------------------------------------------------------------------#
+#                          Charter language                          #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_language():
+    language = "A language"
+    charter = Charter(id_text="1", language=language)
+    assert charter.language == language
+    language_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:lang_MOM",
+    )
+    language_xml.text == language
 
 
 # --------------------------------------------------------------------#

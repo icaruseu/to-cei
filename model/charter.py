@@ -88,6 +88,7 @@ class Charter(XmlAssembler):
     _id_text: str = ""
     _issued_place: Optional[str | etree._Element] = None
     _issuer: Optional[str | etree._Element] = None
+    _language: Optional[str] = None
     _material: Optional[str] = None
     _recipient: Optional[str | etree._Element] = None
     _seal_descriptions: Optional[
@@ -110,6 +111,7 @@ class Charter(XmlAssembler):
         id_old: Optional[str] = None,
         issued_place: Optional[str | etree._Element] = None,
         issuer: Optional[str | etree._Element] = None,
+        language: Optional[str] = None,
         material: Optional[str] = None,
         recipient: Optional[str | etree._Element] = None,
         seal_descriptions: Optional[
@@ -173,6 +175,7 @@ class Charter(XmlAssembler):
         self.id_text = id_text
         self.issued_place = issued_place
         self.issuer = issuer
+        self.language = language
         self.material = material
         self.recipient = recipient
         self.seal_descriptions = seal_descriptions
@@ -339,6 +342,14 @@ class Charter(XmlAssembler):
         self._issuer = validate_element(value, "issuer")
 
     @property
+    def language(self):
+        return self._language
+
+    @language.setter
+    def language(self, value: Optional[str] = None):
+        self._language = value
+
+    @property
     def material(self):
         return self._material
 
@@ -425,6 +436,7 @@ class Charter(XmlAssembler):
             self._create_cei_issued(),
             self._create_cei_witness_orig(),
             self._create_cei_diplomatic_analysis(),
+            self._create_cei_lang_mom()
         )
         return CEI.chDesc(*children) if len(children) else None
 
@@ -495,6 +507,9 @@ class Charter(XmlAssembler):
                 CEI.issuer(self.issuer) if isinstance(self.issuer, str) else self.issuer
             )
         )
+
+    def _create_cei_lang_mom(self)-> Optional[etree._Element]:
+        return None if self.language is None else CEI.lang_MOM(self.language)
 
     def _create_cei_material(self) -> Optional[etree._Element]:
         return None if self.material is None else CEI.material(self.material)
