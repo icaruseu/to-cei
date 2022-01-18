@@ -80,6 +80,7 @@ class Charter(XmlAssembler):
     _abstract_bibls: List[str] = []
     _archive: Optional[str] = None
     _date: Optional[str | etree._Element] = None
+    _date_quote: Optional[str | etree._Element] = None
     _date_value: Optional[Time | Tuple[Time, Time]] = None
     _graphic_urls: List[str] = []
     _id_norm: Optional[str] = None
@@ -89,7 +90,9 @@ class Charter(XmlAssembler):
     _issuer: Optional[str | etree._Element] = None
     _material: Optional[str] = None
     _recipient: Optional[str | etree._Element] = None
-    _seal_descriptions: Optional[etree._Element | str | Seal | List[str] | List[Seal]] = None
+    _seal_descriptions: Optional[
+        etree._Element | str | Seal | List[str] | List[Seal]
+    ] = None
     _tradition_form: Optional[str] = None
     _transcription_bibls: List[str] = []
 
@@ -100,6 +103,7 @@ class Charter(XmlAssembler):
         abstract_bibls: str | List[str] = [],
         archive: Optional[str] = None,
         date: Optional[str | etree._Element] = None,
+        date_quote: Optional[str | etree._Element] = None,
         date_value: DateValue = None,
         graphic_urls: str | List[str] = [],
         id_norm: Optional[str] = None,
@@ -128,6 +132,8 @@ class Charter(XmlAssembler):
         archive: The name of the archive that owns the original charter.
 
         date: The date the charter was issued at either as text to use when converting to CEI or a complete cei:date or cei:dateRange etree._Element. If the date is given as an XML element, date_value needs to remain emptyself. Missing values will be constructed as having a date of "No date" in the XML.
+
+        date_quote: The charter's date in the original text either as text or a complete cel:quoteOriginaldatierung etree._Element object.
 
         date_value: The actual date value in case the value in date is just a text and not an XML element. Can bei either an ISO date string, a MOM-compatible string, a python datetime object (can only be between years 1 and 9999) or an astropy Time object - or a tuple with two such values. If a single value is given, it is interpreted as an exact value, otherwise the two values will be used as from/to attributes of a cei:dateRange object. Missing values will be added to the xml as @value="99999999" to conform with the MOM data practices. When a date_value is added and date is an XML element, an exception is raised.
 
@@ -158,6 +164,7 @@ class Charter(XmlAssembler):
         self.abstract_bibls = abstract_bibls
         self.archive = archive
         self.date = date
+        self.date_quote = date_quote
         if date_value is not None:
             self.date_value = date_value
         self.graphic_urls = graphic_urls
@@ -211,6 +218,14 @@ class Charter(XmlAssembler):
     @date.setter
     def date(self, value: Optional[str | etree._Element] = None):
         self._date = validate_element(value, "date", "dateRange")
+
+    @property
+    def date_quote(self):
+        return self._date_quote
+
+    @date_quote.setter
+    def date_quote(self, value: Optional[str | etree._Element] = None):
+        self._date_quote = validate_element(value, "quoteOriginaldatierung")
 
     @property
     def date_value(self):
@@ -349,7 +364,8 @@ class Charter(XmlAssembler):
 
     @seal_descriptions.setter
     def seal_descriptions(
-        self, value: Optional[etree._Element | str | Seal | List[str] | List[Seal]] = None
+        self,
+        value: Optional[etree._Element | str | Seal | List[str] | List[Seal]] = None,
     ):
         validated = (
             validate_element(value, "sealDesc")
@@ -408,6 +424,7 @@ class Charter(XmlAssembler):
             self._create_cei_abstract(),
             self._create_cei_issued(),
             self._create_cei_witness_orig(),
+            self._create_cei_diplomatic_analysis(),
         )
         return CEI.chDesc(*children) if len(children) else None
 
@@ -442,6 +459,10 @@ class Charter(XmlAssembler):
             return CEI.date(self.date, {"value": NO_DATE_VALUE})
         # Nothing
         return CEI.date(NO_DATE_TEXT, {"value": NO_DATE_VALUE})
+
+    def _create_cei_diplomatic_analysis(self):
+        children = join(self._create_cei_quote_originaldatierung())
+        return CEI.diplomaticAnalysis(*children) if len(children) else None
 
     def _create_cei_figures(self) -> List[etree._Element]:
         return (
@@ -489,6 +510,13 @@ class Charter(XmlAssembler):
             None
             if value is None
             else (CEI.placeName(value) if isinstance(value, str) else value)
+        )
+
+    def _create_cei_quote_originaldatierung(self) -> Optional[etree._Element]:
+        return (
+            self.date_quote
+            if self.date_quote is None or isinstance(self.date_quote, etree._Element)
+            else CEI.quoteOriginaldatierung(self.date_quote)
         )
 
     def _create_cei_recipient(self) -> Optional[etree._Element]:

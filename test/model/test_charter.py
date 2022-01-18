@@ -33,6 +33,7 @@ def test_is_valid_charter():
         abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
         archive="Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)",
         date="1307 II 22",
+        date_quote="an sand peters tage in der vasten, als er avf den stvl ze Rome gesatz wart",
         date_value=Time("1307-02-22", format="isot", scale="ut1"),
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
         issued_place="Wiener Neustadt",
@@ -383,6 +384,41 @@ def test_raises_exception_when_setting_date_value_for_xml_date():
     charter = Charter(id_text="1", date=date)
     with pytest.raises(CeiException):
         charter.date_value = (date_from, date_to)
+
+
+# --------------------------------------------------------------------#
+#                         Charter date quote                         #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_text_date_quote():
+    date_quote = "A date quote"
+    charter = Charter(id_text="1", date_quote=date_quote)
+    assert charter.date_quote == date_quote
+    date_quote_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:diplomaticAnalysis/cei:quoteOriginaldatierung",
+    )
+    assert date_quote_xml.text == date_quote
+
+
+def test_has_correct_xml_date_quote():
+    date_quote = CEI.quoteOriginaldatierung(
+        "Original dating with ", CEI.sup("a"), " superscript"
+    )
+    charter = Charter(id_text="1", date_quote=date_quote)
+    assert charter.date_quote == date_quote
+    superscript_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:diplomaticAnalysis/cei:quoteOriginaldatierung/cei:sup",
+    )
+    assert superscript_xml.text == "a"
+
+
+def test_raises_exception_for_incorrect_xml_date_quote():
+    incorrect_element = CEI.persName("A person")
+    with pytest.raises(CeiException):
+        Charter(id_text="1", date_quote=incorrect_element)
 
 
 # --------------------------------------------------------------------#
