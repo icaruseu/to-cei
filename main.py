@@ -23,7 +23,7 @@ if __name__ == "__main__":
             graphic_urls=[
                 "K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"
             ],
-            index_terms=["Arenga", CEI.index("Insulare Minuskel")],
+            index=["Arenga", CEI.index("Insulare Minuskel")],
             index_geo_features=["Leithagebirge", CEI.geogName("Donau")],
             index_organizations=["Bistum Passau", CEI.orgName("Erzbistum Salzburg")],
             index_persons=[
