@@ -1,3 +1,4 @@
+from config import CEI
 from model.charter import Charter
 
 if __name__ == "__main__":
@@ -42,5 +43,6 @@ if __name__ == "__main__":
             tradition="orig.",
             transcription="Ich Hainrich, des Praitenvelder Schreiber, [...] ze Rome gesatz wart.",
             transcription_sources="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
+            witnesses=["Franz von Ehrlingen", CEI.persName("Ulrich der Schneider")],
         ).to_string()
     )

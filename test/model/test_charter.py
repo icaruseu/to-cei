@@ -65,6 +65,7 @@ def test_is_valid_charter():
         tradition="orig.",
         transcription="Ich Hainrich, des Praitenvelder Schreiber, [...] ze Rome gesatz wart.",
         transcription_sources="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
+        witnesses=["Franz von Ehrlingen", CEI.persName("Ulrich der Schneider")],
     )
     Validator().validate_cei(charter.to_xml())
 
@@ -1015,3 +1016,30 @@ def test_has_correct_tradition():
 def test_has_correct_type():
     charter = Charter(id_text="1").to_xml()
     assert charter.get("type") == "charter"
+
+
+# --------------------------------------------------------------------#
+#                         Charter witnesses                          #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_witnesses():
+    witnesses = [
+        "Witness a",
+        CEI.persName("Witness b"),
+        CEI.persName("Witness c", {"type": "Zeuge"}),
+    ]
+    charter = Charter(id_text="1", witnesses=witnesses)
+    assert charter.witnesses == witnesses
+    pers_names_xml = xp(charter, '/cei:text/cei:back/cei:persName[@type="Zeuge"]')
+    assert len(pers_names_xml) == 3
+    assert pers_names_xml[0].text == witnesses[0]
+    assert pers_names_xml[1].text == witnesses[1].text
+    assert pers_names_xml[2].text == witnesses[2].text
+
+
+def test_raises_exception_for_invalid_xml():
+    with pytest.raises(CeiException):
+        Charter(
+            id_text="1", witnesses=[CEI.persName("A Person"), CEI.placeName("A place")]
+        )

@@ -109,6 +109,7 @@ class Charter(XmlAssembler):
     _tradition: Optional[str] = None
     _transcription: Optional[str | etree._Element] = None
     _transcription_sources: List[str] = []
+    _witnesses: List[str | etree._Element] = []
 
     def __init__(
         self,
@@ -143,6 +144,7 @@ class Charter(XmlAssembler):
         tradition: str = None,
         transcription: str | etree._Element = None,
         transcription_sources: str | List[str] = [],
+        witnesses: List[str | etree._Element] = [],
     ) -> None:
         """
         Creates a new charter object.
@@ -210,6 +212,8 @@ class Charter(XmlAssembler):
         transcription: The full text transcription of the charter either as text or a complete cei:tenor etree._Element object.
 
         transcription_sources: The source or sources for the transcription.
+
+        witnesses: The list of witnesses either as text or complete cei:persName etree._Element objects. A '@type="Zeuge"' attribute will be added for all etree._Element list items.
         ----------
         """
         if not id_text:
@@ -246,6 +250,7 @@ class Charter(XmlAssembler):
         self.tradition = tradition
         self.transcription = transcription
         self.transcription_sources = transcription_sources
+        self.witnesses = witnesses
 
     # --------------------------------------------------------------------#
     #                             Properties                             #
@@ -579,6 +584,14 @@ class Charter(XmlAssembler):
     def transcription_sources(self, value: str | List[str] = []):
         self._transcription_sources = value if isinstance(value, List) else [value]
 
+    @property
+    def witnesses(self):
+        return self._witnesses
+
+    @witnesses.setter
+    def witnesses(self, value: List[str | etree._Element] = []):
+        self._witnesses = [validate_element(item, "persName") for item in value]  # type: ignore
+
     # --------------------------------------------------------------------#
     #                        Private CEI creators                        #
     # --------------------------------------------------------------------#
@@ -603,7 +616,10 @@ class Charter(XmlAssembler):
         return CEI.auth(*children) if len(children) else None
 
     def _create_cei_back(self) -> etree._Element:
-        children = join(self._create_cei_div_notes())
+        children = join(
+            [self._create_cei_pers_name(person, type="Zeuge") for person in self.witnesses],  # type: ignore
+            self._create_cei_div_notes(),
+        )
         return CEI.back(*children)
 
     def _create_cei_bibls(self, bibls: List[str]) -> List[etree._Element]:
@@ -770,6 +786,18 @@ class Charter(XmlAssembler):
         return (
             [CEI.p(comment) for comment in self.comments] if len(self.comments) else []
         )
+
+    def _create_cei_pers_name(
+        self, value: Optional[str | etree._Element], type: Optional[str] = None
+    ) -> Optional[etree._Element]:
+        if isinstance(value, str):
+            return CEI.persName(value, {"type": type})
+        elif isinstance(value, etree._Element):
+            if type is not None:
+                value.set("type", type)
+            return value
+        else:
+            return None
 
     def _create_cei_physical_desc(self) -> Optional[etree._Element]:
         children = join(
