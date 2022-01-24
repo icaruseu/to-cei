@@ -95,6 +95,11 @@ class Charter(XmlAssembler):
     _issued_place: Optional[str | etree._Element] = None
     _issuer: Optional[str | etree._Element] = None
     _language: Optional[str] = None
+    _literature: List[str] = []
+    _literature_abstracts: List[str] = []
+    _literature_depictions: List[str] = []
+    _literature_editions: List[str] = []
+    _literature_secondary: List[str] = []
     _material: Optional[str] = None
     _notarial_authentication: Optional[str | etree._Element] = None
     _recipient: Optional[str | etree._Element] = None
@@ -122,6 +127,11 @@ class Charter(XmlAssembler):
         issued_place: str | etree._Element = None,
         issuer: str | etree._Element = None,
         language: str = None,
+        literature: str | List[str] = [],
+        literature_abstracts: str | List[str] = [],
+        literature_depictions: str | List[str] = [],
+        literature_editions: str | List[str] = [],
+        literature_secondary: str | List[str] = [],
         material: str = None,
         notarial_authentication: str | etree._Element = None,
         recipient: str | etree._Element = None,
@@ -169,6 +179,16 @@ class Charter(XmlAssembler):
 
         language: The language of the charter as text.
 
+        literature: A single text or list of texts descibing unspecified literature for the charter.
+
+        literature_abstracts: A single text or list of texts descibing abstracts of the charter.
+
+        literature_depictions: A single text or list of texts descibing depictions of the charter.
+
+        literature_editions: A single text or list of texts descibing editions of the charter.
+
+        literature_secondary: A single text or list of texts descibing secondary literature about the charter.
+
         material: A string description of the material the charter is made of.
 
         notarial_authentication: A string or complete cei:notariusDesc etree._Element that describes the notarial_authentication of the charter.
@@ -204,6 +224,11 @@ class Charter(XmlAssembler):
         self.issued_place = issued_place
         self.issuer = issuer
         self.language = language
+        self.literature = literature
+        self.literature_abstracts = literature_abstracts
+        self.literature_depictions = literature_depictions
+        self.literature_editions = literature_editions
+        self.literature_secondary = literature_secondary
         self.material = material
         self.notarial_authentication = notarial_authentication
         self.recipient = recipient
@@ -418,6 +443,46 @@ class Charter(XmlAssembler):
         self._language = value
 
     @property
+    def literature(self):
+        return self._literature
+
+    @literature.setter
+    def literature(self, value: str | List[str] = []):
+        self._literature = value if isinstance(value, List) else [value]
+
+    @property
+    def literature_abstracts(self):
+        return self._literature_abstracts
+
+    @literature_abstracts.setter
+    def literature_abstracts(self, value: str | List[str] = []):
+        self._literature_abstracts = value if isinstance(value, List) else [value]
+
+    @property
+    def literature_depictions(self):
+        return self._literature_depictions
+
+    @literature_depictions.setter
+    def literature_depictions(self, value: str | List[str] = []):
+        self._literature_depictions = value if isinstance(value, List) else [value]
+
+    @property
+    def literature_editions(self):
+        return self._literature_editions
+
+    @literature_editions.setter
+    def literature_editions(self, value: str | List[str] = []):
+        self._literature_editions = value if isinstance(value, List) else [value]
+
+    @property
+    def literature_secondary(self):
+        return self._literature_secondary
+
+    @literature_secondary.setter
+    def literature_secondary(self, value: str | List[str] = []):
+        self._literature_secondary = value if isinstance(value, List) else [value]
+
+    @property
     def material(self):
         return self._material
 
@@ -514,6 +579,9 @@ class Charter(XmlAssembler):
     def _create_cei_back(self) -> etree._Element:
         return CEI.back()
 
+    def _create_cei_bibls(self, bibls: List[str]) -> List[etree._Element]:
+        return [CEI.bibl(bibl) for bibl in bibls]
+
     def _create_cei_body(self) -> etree._Element:
         children = join(
             self._create_cei_idno(), self._create_cei_chdesc(), self._create_cei_tenor()
@@ -569,7 +637,14 @@ class Charter(XmlAssembler):
         return None if self.dimensions is None else CEI.dimensions(self.dimensions)
 
     def _create_cei_diplomatic_analysis(self) -> Optional[etree._Element]:
-        children = join(self._create_cei_quote_originaldatierung())
+        children = join(
+            self._create_cei_list_bibl(),
+            self._create_cei_list_bibl_edition(),
+            self._create_cei_list_bibl_regest(),
+            self._create_cei_list_bibl_faksimile(),
+            self._create_cei_list_bibl_erw(),
+            self._create_cei_quote_originaldatierung(),
+        )
         return CEI.diplomaticAnalysis(*children) if len(children) else None
 
     def _create_cei_figures(self) -> List[etree._Element]:
@@ -606,6 +681,41 @@ class Charter(XmlAssembler):
 
     def _create_cei_lang_mom(self) -> Optional[etree._Element]:
         return None if self.language is None else CEI.lang_MOM(self.language)
+
+    def _create_cei_list_bibl(self) -> Optional[etree._Element]:
+        return (
+            CEI.listBibl(*self._create_cei_bibls(self.literature))
+            if len(self.literature)
+            else None
+        )
+
+    def _create_cei_list_bibl_edition(self) -> Optional[etree._Element]:
+        return (
+            CEI.listBiblEdition(*self._create_cei_bibls(self.literature_editions))
+            if len(self.literature_editions)
+            else None
+        )
+
+    def _create_cei_list_bibl_erw(self) -> Optional[etree._Element]:
+        return (
+            CEI.listBiblErw(*self._create_cei_bibls(self.literature_secondary))
+            if len(self.literature_secondary)
+            else None
+        )
+
+    def _create_cei_list_bibl_faksimile(self) -> Optional[etree._Element]:
+        return (
+            CEI.listBiblFaksimile(*self._create_cei_bibls(self.literature_depictions))
+            if len(self.literature_depictions)
+            else None
+        )
+
+    def _create_cei_list_bibl_regest(self) -> Optional[etree._Element]:
+        return (
+            CEI.listBiblRegest(*self._create_cei_bibls(self.literature_abstracts))
+            if len(self.literature_abstracts)
+            else None
+        )
 
     def _create_cei_material(self) -> Optional[etree._Element]:
         return None if self.material is None else CEI.material(self.material)
@@ -685,14 +795,12 @@ class Charter(XmlAssembler):
         children = []
         if self.abstract_sources:
             children.append(
-                CEI.sourceDescRegest(
-                    *[CEI.bibl(bibl) for bibl in self.abstract_sources]
-                )
+                CEI.sourceDescRegest(*self._create_cei_bibls(self.abstract_sources))
             )
         if self.transcription_sources:
             children.append(
                 CEI.sourceDescVolltext(
-                    *[CEI.bibl(bibl) for bibl in self.transcription_sources]
+                    *self._create_cei_bibls(self.transcription_sources)
                 )
             )
         return CEI.sourceDesc(*children) if len(children) else None

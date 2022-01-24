@@ -23,6 +23,16 @@ if __name__ == "__main__":
             issued_place="Wiener Neustadt",
             issuer="Konrad von Lintz",
             language="Deutsch",
+            literature="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103",
+            literature_abstracts="[RI XIII] H. 4 n. 778, in: Regesta Imperii Online, URI: http://www.regesta-imperii.de/id/1477-04-02_1_0_13_4_0_10350_778 (Abgerufen am 13.11.2016)",
+            literature_depictions="ADEVA-Verlag, Die Ostarrichi-Urkunde – Luxus-Ausgabe. Ausstattung und Preise, In: ADEVA Home (2012), online unter <http://www.adeva.com/faks_detail_bibl.asp?id=127> (12.12.2012)",
+            literature_editions=[
+                "Urkunden der burgundischen Rudolfinger, ed. Theodor Schieffer, Monumenta Germaniae Historica, Diplomata, 2A, Regum Burgundiae e stirpe Rudolfina diplomata et acta, München 1977; in der Folge: MGH DD Burg. 103."
+            ],
+            literature_secondary=[
+                "HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
+                "HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 127, Nr. 105",
+            ],
             material="Pergament",
             notarial_authentication="Albertus Magnus",
             recipient="Heinrich, des Praitenvelders Schreiber",

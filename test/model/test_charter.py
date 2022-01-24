@@ -47,6 +47,16 @@ def test_is_valid_charter():
         issuer="Konrad von Lintz",
         language="Deutsch",
         material="Pergament",
+        literature="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103",
+        literature_abstracts="[RI XIII] H. 4 n. 778, in: Regesta Imperii Online, URI: http://www.regesta-imperii.de/id/1477-04-02_1_0_13_4_0_10350_778 (Abgerufen am 13.11.2016)",
+        literature_depictions="ADEVA-Verlag, Die Ostarrichi-Urkunde – Luxus-Ausgabe. Ausstattung und Preise, In: ADEVA Home (2012), online unter <http://www.adeva.com/faks_detail_bibl.asp?id=127> (12.12.2012)",
+        literature_editions=[
+            "Urkunden der burgundischen Rudolfinger, ed. Theodor Schieffer, Monumenta Germaniae Historica, Diplomata, 2A, Regum Burgundiae e stirpe Rudolfina diplomata et acta, München 1977; in der Folge: MGH DD Burg. 103."
+        ],
+        literature_secondary=[
+            "HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
+            "HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 127, Nr. 105",
+        ],
         notarial_authentication="Albertus Magnus",
         seals="2 Siegel",
         recipient="Heinrich, des Praitenvelders Schreiber",
@@ -147,7 +157,9 @@ def test_has_correct_transcription_bibl():
         transcription_sources=bibl_text,
     )
     assert isinstance(charter.transcription_sources, List)
-    sources = xps(charter, "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*")
+    sources = xps(
+        charter, "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*"
+    )
     assert sources.text == bibl_text
 
 
@@ -662,6 +674,76 @@ def test_has_correct_language():
         "/cei:text/cei:body/cei:chDesc/cei:lang_MOM",
     )
     language_xml.text == language
+
+
+# --------------------------------------------------------------------#
+#                      Charter literature lists                      #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_literature():
+    literature = ["Entry 1", "Entry 2"]
+    charter = Charter(id_text="1", literature=literature)
+    assert charter.literature == literature
+    literature_xml = xp(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:diplomaticAnalysis/cei:listBibl/cei:bibl",
+    )
+    assert len(literature_xml) == 2
+    assert literature_xml[0].text == literature[0]
+    assert literature_xml[1].text == literature[1]
+
+
+def test_has_correct_literature_abstracts():
+    literature_abstracts = ["Entry 1", "Entry 2"]
+    charter = Charter(id_text="1", literature_abstracts=literature_abstracts)
+    assert charter.literature_abstracts == literature_abstracts
+    literature_abstracts_xml = xp(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:diplomaticAnalysis/cei:listBiblRegest/cei:bibl",
+    )
+    assert len(literature_abstracts_xml) == 2
+    assert literature_abstracts_xml[0].text == literature_abstracts[0]
+    assert literature_abstracts_xml[1].text == literature_abstracts[1]
+
+
+def test_has_correct_literature_depictions():
+    literature_depictions = ["Entry 1", "Entry 2"]
+    charter = Charter(id_text="1", literature_depictions=literature_depictions)
+    assert charter.literature_depictions == literature_depictions
+    literature_depictions_xml = xp(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:diplomaticAnalysis/cei:listBiblFaksimile/cei:bibl",
+    )
+    assert len(literature_depictions_xml) == 2
+    assert literature_depictions_xml[0].text == literature_depictions[0]
+    assert literature_depictions_xml[1].text == literature_depictions[1]
+
+
+def test_has_correct_literature_editions():
+    literature_editions = ["Entry 1", "Entry 2"]
+    charter = Charter(id_text="1", literature_editions=literature_editions)
+    assert charter.literature_editions == literature_editions
+    literature_editions_xml = xp(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:diplomaticAnalysis/cei:listBiblEdition/cei:bibl",
+    )
+    assert len(literature_editions_xml) == 2
+    assert literature_editions_xml[0].text == literature_editions[0]
+    assert literature_editions_xml[1].text == literature_editions[1]
+
+
+def test_has_correct_literature_secondary():
+    literature_secondary = ["Entry 1", "Entry 2"]
+    charter = Charter(id_text="1", literature_secondary=literature_secondary)
+    assert charter.literature_secondary == literature_secondary
+    literature_secondary_xml = xp(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:diplomaticAnalysis/cei:listBiblErw/cei:bibl",
+    )
+    assert len(literature_secondary_xml) == 2
+    assert literature_secondary_xml[0].text == literature_secondary[0]
+    assert literature_secondary_xml[1].text == literature_secondary[1]
 
 
 # --------------------------------------------------------------------#

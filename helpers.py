@@ -14,7 +14,7 @@ def join(
     for value in values:
         if isinstance(value, etree._Element):
             all.append(value)
-        elif isinstance(value, List):
+        elif isinstance(value, List) and len(value):
             all = all + value
     return all
 

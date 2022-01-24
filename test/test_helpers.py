@@ -14,7 +14,7 @@ def test_gets_correct_namespace():
 
 def test_joins_correctly():
     joined = join(
-        CEI.text(), None, CEI.persName(), None, [CEI.placeName(), CEI.persName()]
+        CEI.text(), None, CEI.persName(), None, [], [CEI.placeName(), CEI.persName()]
     )
     assert len(joined) == 4
     assert etree.tostring(joined[0]) == etree.tostring(CEI.text())
