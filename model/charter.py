@@ -18,6 +18,8 @@ MOM_DATE_REGEX = re.compile(
 NO_DATE_TEXT = "No date"
 NO_DATE_VALUE = "99999999"
 
+SIMPLE_URL_REGEX = re.compile(r"^https?://.{1,}\..{1,}$")
+
 Date = str | datetime | Time
 
 DateValue = Optional[Date | Tuple[Date, Date]]
@@ -85,6 +87,7 @@ class Charter(XmlAssembler):
     _date_quote: Optional[str | etree._Element] = None
     _date_value: Optional[Time | Tuple[Time, Time]] = None
     _dimensions: Optional[str] = None
+    _external_link: Optional[str] = None
     _graphic_urls: List[str] = []
     _id_norm: Optional[str] = None
     _id_old: Optional[str] = None
@@ -95,9 +98,7 @@ class Charter(XmlAssembler):
     _material: Optional[str] = None
     _notarial_authentication: Optional[str | etree._Element] = None
     _recipient: Optional[str | etree._Element] = None
-    _seals: Optional[
-        etree._Element | str | Seal | List[str] | List[Seal]
-    ] = None
+    _seals: Optional[etree._Element | str | Seal | List[str] | List[Seal]] = None
     _tradition_form: Optional[str] = None
     _transcription: Optional[str | etree._Element] = None
     _transcription_bibls: List[str] = []
@@ -114,6 +115,7 @@ class Charter(XmlAssembler):
         date_quote: str | etree._Element = None,
         date_value: DateValue = None,
         dimensions: str = None,
+        external_link: str = None,
         graphic_urls: str | List[str] = [],
         id_norm: str = None,
         id_old: str = None,
@@ -152,6 +154,8 @@ class Charter(XmlAssembler):
         date_value: The actual date value in case the value in date is just a text and not an XML element. Can bei either an ISO date string, a MOM-compatible string, a python datetime object (can only be between years 1 and 9999) or an astropy Time object - or a tuple with two such values. If a single value is given, it is interpreted as an exact value, otherwise the two values will be used as from/to attributes of a cei:dateRange object. Missing values will be added to the xml as @value="99999999" to conform with the MOM data practices. When a date_value is added and date is an XML element, an exception is raised.
 
         dimensions: The description of the physical dimensions of the charter as text.
+
+        external_link: A link to an external representation of the charter as text.
 
         graphic_urls: A list of strings that represents the urls of various images representing the charter. Can bei either full urls or just the filenames of the image files, depending on the charter fond / collection settings.
 
@@ -192,6 +196,7 @@ class Charter(XmlAssembler):
         if date_value is not None:
             self.date_value = date_value
         self.dimensions = dimensions
+        self.external_link = external_link
         self.graphic_urls = graphic_urls
         self.id_norm = id_norm
         self.id_old = id_old
@@ -339,6 +344,20 @@ class Charter(XmlAssembler):
         self._dimensions = value
 
     @property
+    def external_link(self):
+        return self._external_link
+
+    @external_link.setter
+    def external_link(self, value: str = None):
+        if value and not re.match(SIMPLE_URL_REGEX, value):
+            raise CeiException(
+                "'{}' does not look like a valid external URL. If you think it is valid, please contact the to-CEI library maintainers and tell them.".format(
+                    value
+                )
+            )
+        self._external_link = value
+
+    @property
     def graphic_urls(self):
         return self._graphic_urls
 
@@ -481,8 +500,12 @@ class Charter(XmlAssembler):
             else self.abstract
         )
 
+    def _create_cei_arch(self) -> Optional[etree._Element]:
+        return None if not self.archive else CEI.arch(self.archive)
+
     def _create_cei_arch_identifier(self) -> Optional[etree._Element]:
-        return None if not self.archive else CEI.archIdentifier(CEI.arch(self.archive))
+        children = join(self._create_cei_arch(), self._create_cei_ref())
+        return CEI.archIdentifier(*children) if len(children) else None
 
     def _create_cei_auth(self) -> Optional[etree._Element]:
         children = join(self._create_cei_notarius_desc(), self._create_cei_seal_desc())
@@ -631,6 +654,13 @@ class Charter(XmlAssembler):
                 if isinstance(self.recipient, str)
                 else self.recipient
             )
+        )
+
+    def _create_cei_ref(self) -> Optional[etree._Element]:
+        return (
+            None
+            if self.external_link is None
+            else CEI.ref({"target": self.external_link})
         )
 
     def _create_cei_seal_desc(self) -> Optional[etree._Element]:

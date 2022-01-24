@@ -41,6 +41,7 @@ def test_is_valid_charter():
         date_quote="an sand peters tage in der vasten, als er avf den stvl ze Rome gesatz wart",
         date_value=Time("1307-02-22", format="isot", scale="ut1"),
         dimensions="20x20cm",
+        external_link="https://example.com/charters/1",
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
         issued_place="Wiener Neustadt",
         issuer="Konrad von Lintz",
@@ -487,6 +488,28 @@ def test_has_correct_charter_dimensions():
 
 
 # --------------------------------------------------------------------#
+#                        Charter external url                        #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_external_url():
+    external_link = "https://example.com/charters/1"
+    charter = Charter(id_text="1", external_link=external_link)
+    assert charter.external_link == external_link
+    external_link_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:archIdentifier/cei:ref",
+    )
+    assert external_link_xml.get("target") == external_link
+
+
+def test_raises_exception_for_invalid_external_link():
+    localhost = "http://localhost"
+    with pytest.raises(CeiException):
+        Charter(id_text="1", external_link=localhost)
+
+
+# --------------------------------------------------------------------#
 #                     Charter figures / graphics                     #
 # --------------------------------------------------------------------#
 
@@ -786,12 +809,12 @@ def test_has_correct_single_seal_object():
         charter,
         "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:sealDesc/cei:seal",
     )
-    assert seals_xml.xpath(
-        "cei:sealMaterial/text()", namespaces=CHARTER_NSS
-    ) == ["A material"]
-    assert seals_xml.xpath(
-        "cei:sigillant/text()", namespaces=CHARTER_NSS
-    ) == ["A sigillant"]
+    assert seals_xml.xpath("cei:sealMaterial/text()", namespaces=CHARTER_NSS) == [
+        "A material"
+    ]
+    assert seals_xml.xpath("cei:sigillant/text()", namespaces=CHARTER_NSS) == [
+        "A sigillant"
+    ]
 
 
 def test_has_correct_multiple_seal_objects():
@@ -805,18 +828,18 @@ def test_has_correct_multiple_seal_objects():
         charter,
         "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:sealDesc/cei:seal",
     )
-    assert seals_xml[0].xpath(
-        "cei:sealMaterial/text()", namespaces=CHARTER_NSS
-    ) == ["Material a"]
-    assert seals_xml[0].xpath(
-        "cei:sigillant/text()", namespaces=CHARTER_NSS
-    ) == ["Sigillant a"]
-    assert seals_xml[1].xpath(
-        "cei:sealMaterial/text()", namespaces=CHARTER_NSS
-    ) == ["Material b"]
-    assert seals_xml[1].xpath(
-        "cei:sigillant/text()", namespaces=CHARTER_NSS
-    ) == ["Sigillant b"]
+    assert seals_xml[0].xpath("cei:sealMaterial/text()", namespaces=CHARTER_NSS) == [
+        "Material a"
+    ]
+    assert seals_xml[0].xpath("cei:sigillant/text()", namespaces=CHARTER_NSS) == [
+        "Sigillant a"
+    ]
+    assert seals_xml[1].xpath("cei:sealMaterial/text()", namespaces=CHARTER_NSS) == [
+        "Material b"
+    ]
+    assert seals_xml[1].xpath("cei:sigillant/text()", namespaces=CHARTER_NSS) == [
+        "Sigillant b"
+    ]
 
 
 # --------------------------------------------------------------------#
