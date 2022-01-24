@@ -95,7 +95,7 @@ class Charter(XmlAssembler):
     _material: Optional[str] = None
     _notarial_authentication: Optional[str | etree._Element] = None
     _recipient: Optional[str | etree._Element] = None
-    _seal_descriptions: Optional[
+    _seals: Optional[
         etree._Element | str | Seal | List[str] | List[Seal]
     ] = None
     _tradition_form: Optional[str] = None
@@ -123,7 +123,7 @@ class Charter(XmlAssembler):
         material: str = None,
         notarial_authentication: str | etree._Element = None,
         recipient: str | etree._Element = None,
-        seal_descriptions: etree._Element | str | Seal | List[str] | List[Seal] = None,
+        seals: etree._Element | str | Seal | List[str] | List[Seal] = None,
         tradition_form: str = None,
         transcription: str | etree._Element = None,
         transcription_bibls: str | List[str] = [],
@@ -171,7 +171,7 @@ class Charter(XmlAssembler):
 
         recipient: The recipient of the charter either as text or a complete cei:issuer etree._Element.
 
-        seal_descriptions: The description of the seals of a charter, either as a single/list of simple text descriptions or Seal objects, or a complete cei:sealDesc etree._Element object.
+        seals: The description of the seals of a charter, either as a single/list of simple text descriptions or Seal objects, or a complete cei:sealDesc etree._Element object.
 
         tradition_form: The form of the charter's tradition, as an original, copy or something else. Can be any free text.
 
@@ -202,7 +202,7 @@ class Charter(XmlAssembler):
         self.material = material
         self.notarial_authentication = notarial_authentication
         self.recipient = recipient
-        self.seal_descriptions = seal_descriptions
+        self.seals = seals
         self.tradition_form = tradition_form
         self.transcription = transcription
         self.transcription_bibls = transcription_bibls
@@ -427,11 +427,11 @@ class Charter(XmlAssembler):
         self._recipient = validate_element(value, "recipient")
 
     @property
-    def seal_descriptions(self):
-        return self._seal_descriptions
+    def seals(self):
+        return self._seals
 
-    @seal_descriptions.setter
-    def seal_descriptions(
+    @seals.setter
+    def seals(
         self,
         value: etree._Element | str | Seal | List[str] | List[Seal] = None,
     ):
@@ -441,9 +441,9 @@ class Charter(XmlAssembler):
             else value
         )
         if validated is None:
-            self._seal_descriptions = None
+            self._seals = None
         else:
-            self._seal_descriptions = validated
+            self._seals = validated
 
     @property
     def tradition_form(self):
@@ -634,20 +634,20 @@ class Charter(XmlAssembler):
         )
 
     def _create_cei_seal_desc(self) -> Optional[etree._Element]:
-        if self.seal_descriptions is None:
+        if self.seals is None:
             return None
-        elif isinstance(self.seal_descriptions, etree._Element):
-            return self.seal_descriptions
-        elif isinstance(self.seal_descriptions, str):
-            return CEI.sealDesc(self.seal_descriptions)
-        elif isinstance(self.seal_descriptions, Seal):
-            return CEI.sealDesc(self.seal_descriptions.to_xml())
+        elif isinstance(self.seals, etree._Element):
+            return self.seals
+        elif isinstance(self.seals, str):
+            return CEI.sealDesc(self.seals)
+        elif isinstance(self.seals, Seal):
+            return CEI.sealDesc(self.seals.to_xml())
         else:
             # List of strings or Seal objects
             return CEI.sealDesc(
                 *[
                     CEI.seal(desc) if isinstance(desc, str) else desc.to_xml()
-                    for desc in self.seal_descriptions
+                    for desc in self.seals
                 ]
             )
 

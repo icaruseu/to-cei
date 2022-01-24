@@ -47,7 +47,7 @@ def test_is_valid_charter():
         language="Deutsch",
         material="Pergament",
         notarial_authentication="Albertus Magnus",
-        seal_descriptions="2 Siegel",
+        seals="2 Siegel",
         recipient="Heinrich, des Praitenvelders Schreiber",
         tradition_form="orig.",
         transcription="Ich Hainrich, des Praitenvelder Schreiber, [...] ze Rome gesatz wart.",
@@ -743,78 +743,78 @@ def test_raises_exception_for_incorrect_xml_recipient():
 
 
 def test_has_correct_seal_description_xml():
-    seal_descriptions = CEI.sealDesc(CEI.seal("Seal 1"), CEI.seal("Seal 2"))
-    charter = Charter(id_text="1", seal_descriptions=seal_descriptions)
-    assert charter.seal_descriptions == seal_descriptions
-    seal_descriptions_xml = xp(
+    seals = CEI.sealDesc(CEI.seal("Seal 1"), CEI.seal("Seal 2"))
+    charter = Charter(id_text="1", seals=seals)
+    assert charter.seals == seals
+    seals_xml = xp(
         charter,
         "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:sealDesc/cei:seal",
     )
-    assert len(seal_descriptions_xml) == 2
-    assert seal_descriptions_xml[0].text == "Seal 1"
-    assert seal_descriptions_xml[1].text == "Seal 2"
+    assert len(seals_xml) == 2
+    assert seals_xml[0].text == "Seal 1"
+    assert seals_xml[1].text == "Seal 2"
 
 
 def test_has_correct_seal_text_description():
-    seal_descriptions = "2 Siegel"
-    charter = Charter(id_text="1", seal_descriptions=seal_descriptions)
-    assert charter.seal_descriptions == seal_descriptions
-    seal_descriptions_xml = xps(
+    seals = "2 Siegel"
+    charter = Charter(id_text="1", seals=seals)
+    assert charter.seals == seals
+    seals_xml = xps(
         charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:sealDesc"
     )
-    assert seal_descriptions_xml.text == seal_descriptions
+    assert seals_xml.text == seals
 
 
 def test_has_correct_multiple_seal_text_descriptions():
-    seal_descriptions = ["Seal 1", "Seal 2"]
-    charter = Charter(id_text="1", seal_descriptions=seal_descriptions)
-    assert charter.seal_descriptions == seal_descriptions
-    seal_descriptions_xml = xp(
+    seals = ["Seal 1", "Seal 2"]
+    charter = Charter(id_text="1", seals=seals)
+    assert charter.seals == seals
+    seals_xml = xp(
         charter,
         "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:sealDesc/cei:seal",
     )
-    assert len(seal_descriptions_xml) == 2
-    assert seal_descriptions_xml[0].text == "Seal 1"
-    assert seal_descriptions_xml[1].text == "Seal 2"
+    assert len(seals_xml) == 2
+    assert seals_xml[0].text == "Seal 1"
+    assert seals_xml[1].text == "Seal 2"
 
 
-def test_has_correct_single_seal_description_object():
-    seal_descriptions = Seal(material="A material", sigillant="A sigillant")
-    charter = Charter(id_text="1", seal_descriptions=seal_descriptions)
-    assert charter.seal_descriptions == seal_descriptions
-    seal_descriptions_xml = xps(
+def test_has_correct_single_seal_object():
+    seals = Seal(material="A material", sigillant="A sigillant")
+    charter = Charter(id_text="1", seals=seals)
+    assert charter.seals == seals
+    seals_xml = xps(
         charter,
         "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:sealDesc/cei:seal",
     )
-    assert seal_descriptions_xml.xpath(
+    assert seals_xml.xpath(
         "cei:sealMaterial/text()", namespaces=CHARTER_NSS
     ) == ["A material"]
-    assert seal_descriptions_xml.xpath(
+    assert seals_xml.xpath(
         "cei:sigillant/text()", namespaces=CHARTER_NSS
     ) == ["A sigillant"]
 
 
-def test_has_correct_multiple_seal_description_objects():
-    seal_descriptions = [
+def test_has_correct_multiple_seal_objects():
+    seals = [
         Seal(material="Material a", sigillant="Sigillant a"),
         Seal(material="Material b", sigillant="Sigillant b"),
     ]
-    charter = Charter(id_text="1", seal_descriptions=seal_descriptions)
-    assert charter.seal_descriptions == seal_descriptions
-    seal_descriptions_xml = xp(
+    charter = Charter(id_text="1", seals=seals)
+    assert charter.seals == seals
+    seals_xml = xp(
         charter,
         "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:sealDesc/cei:seal",
     )
-    assert seal_descriptions_xml[0].xpath(
+    assert seals_xml[0].xpath(
         "cei:sealMaterial/text()", namespaces=CHARTER_NSS
     ) == ["Material a"]
-    assert seal_descriptions_xml[0].xpath(
+    assert seals_xml[0].xpath(
         "cei:sigillant/text()", namespaces=CHARTER_NSS
     ) == ["Sigillant a"]
-    assert seal_descriptions_xml[1].xpath(
+    assert seals_xml[1].xpath(
         "cei:sealMaterial/text()", namespaces=CHARTER_NSS
     ) == ["Material b"]
-    assert seal_descriptions_xml[1].xpath(
+    assert seals_xml[1].xpath(
         "cei:sigillant/text()", namespaces=CHARTER_NSS
     ) == ["Sigillant b"]
 
