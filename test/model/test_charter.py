@@ -45,6 +45,7 @@ def test_is_valid_charter():
         external_link="https://example.com/charters/1",
         footnotes=["Siehe RI #1234", "Abweichend von Nr. 15"],
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
+        index_persons=[ "Hubert, der Schuster", CEI.persName("Antonia Müllerin, des Müllers Frau"), ],
         issued_place="Wiener Neustadt",
         issuer="Konrad von Lintz",
         language="Deutsch",
@@ -628,6 +629,35 @@ def test_raises_exception_for_missing_id():
 
 
 # --------------------------------------------------------------------#
+#                       Charter index                        #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_index_persons():
+    index_persons = [
+        "Witness a",
+        CEI.persName("Witness b"),
+        CEI.persName("Witness c", {"type": "Custom Type"}),
+    ]
+    charter = Charter(id_text="1", index_persons=index_persons)
+    assert charter.index_persons == index_persons
+    pers_names_xml = xp(charter, "/cei:text/cei:back/cei:persName")
+    assert len(pers_names_xml) == 3
+    assert pers_names_xml[0].text == index_persons[0]
+    assert pers_names_xml[1].text == index_persons[1].text
+    assert pers_names_xml[2].text == index_persons[2].text
+    assert pers_names_xml[2].get("type") == index_persons[2].get("type")
+
+
+def test_raises_exception_for_invalid_index_persons_xml():
+    with pytest.raises(CeiException):
+        Charter(
+            id_text="1",
+            index_persons=[CEI.persName("A Person"), CEI.placeName("A place")],
+        )
+
+
+# --------------------------------------------------------------------#
 #                        Charter issued place                        #
 # --------------------------------------------------------------------#
 
@@ -1038,7 +1068,7 @@ def test_has_correct_witnesses():
     assert pers_names_xml[2].text == witnesses[2].text
 
 
-def test_raises_exception_for_invalid_xml():
+def test_raises_exception_for_invalid_witnesses_xml():
     with pytest.raises(CeiException):
         Charter(
             id_text="1", witnesses=[CEI.persName("A Person"), CEI.placeName("A place")]

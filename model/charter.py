@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import quote
 
 from astropy.time import Time
@@ -94,6 +94,7 @@ class Charter(XmlAssembler):
     _id_norm: Optional[str] = None
     _id_old: Optional[str] = None
     _id_text: str = ""
+    _index_persons: List[str | etree._Element] = []
     _issued_place: Optional[str | etree._Element] = None
     _issuer: Optional[str | etree._Element] = None
     _language: Optional[str] = None
@@ -129,6 +130,7 @@ class Charter(XmlAssembler):
         graphic_urls: str | List[str] = [],
         id_norm: str = None,
         id_old: str = None,
+        index_persons: List[str | etree._Element] = [],
         issued_place: str | etree._Element = None,
         issuer: str | etree._Element = None,
         language: str = None,
@@ -183,6 +185,8 @@ class Charter(XmlAssembler):
 
         id_old: An old, now obsolete identifier of the charter.
 
+        index_persons: A list of persons or cei:persName etree._Element objects to be included in the person index.
+
         issued_place: The place the charter has been issued at either as text or a complete cei:placeName etree._Element.
 
         issuer: The issuer of the charter either as text or a complete cei:issuer etree._Element.
@@ -235,6 +239,7 @@ class Charter(XmlAssembler):
         self.id_norm = id_norm
         self.id_old = id_old
         self.id_text = id_text
+        self.index_persons = index_persons
         self.issued_place = issued_place
         self.issuer = issuer
         self.language = language
@@ -446,6 +451,14 @@ class Charter(XmlAssembler):
         self._id_text = value
 
     @property
+    def index_persons(self):
+        return self._index_persons
+
+    @index_persons.setter
+    def index_persons(self, value: List[str | etree._Element] = []):
+        self._index_persons = [validate_element(item, "persName") for item in value]  # type: ignore
+
+    @property
     def issued_place(self):
         return self._issued_place
 
@@ -618,6 +631,7 @@ class Charter(XmlAssembler):
     def _create_cei_back(self) -> etree._Element:
         children = join(
             [self._create_cei_pers_name(person, type="Zeuge") for person in self.witnesses],  # type: ignore
+            [self._create_cei_pers_name(person) for person in self.index_persons],  # type: ignore
             self._create_cei_div_notes(),
         )
         return CEI.back(*children)
@@ -791,7 +805,10 @@ class Charter(XmlAssembler):
         self, value: Optional[str | etree._Element], type: Optional[str] = None
     ) -> Optional[etree._Element]:
         if isinstance(value, str):
-            return CEI.persName(value, {"type": type})
+            attributes = {}
+            if type is not None:
+                attributes["type"] = type
+            return CEI.persName(value, attributes)
         elif isinstance(value, etree._Element):
             if type is not None:
                 value.set("type", type)

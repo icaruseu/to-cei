@@ -23,6 +23,10 @@ if __name__ == "__main__":
             graphic_urls=[
                 "K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"
             ],
+            index_persons=[
+                "Hubert, der Schuster",
+                CEI.persName("Antonia Müllerin, des Müllers Frau", {"type": "Gattin"}),
+            ],
             issued_place="Wiener Neustadt",
             issuer="Konrad von Lintz",
             language="Deutsch",
