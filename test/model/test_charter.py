@@ -45,7 +45,10 @@ def test_is_valid_charter():
         external_link="https://example.com/charters/1",
         footnotes=["Siehe RI #1234", "Abweichend von Nr. 15"],
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
-        index_persons=[ "Hubert, der Schuster", CEI.persName("Antonia Müllerin, des Müllers Frau"), ],
+        index_persons=[
+            "Hubert, der Schuster",
+            CEI.persName("Antonia Müllerin, des Müllers Frau"),
+        ],
         issued_place="Wiener Neustadt",
         issuer="Konrad von Lintz",
         language="Deutsch",
