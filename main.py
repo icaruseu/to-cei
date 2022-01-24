@@ -5,7 +5,7 @@ if __name__ == "__main__":
         Charter(
             "1307 II 22",
             abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
-            abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
+            abstract_sources=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
             archive="Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)",
             chancellary_remarks=[
                 "commissio domini imperatoris in consilio",
@@ -29,6 +29,6 @@ if __name__ == "__main__":
             seals="2 Siegel",
             tradition="orig.",
             transcription="Ich Hainrich, des Praitenvelder Schreiber, [...] ze Rome gesatz wart.",
-            transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
+            transcription_sources="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
         ).to_string()
     )

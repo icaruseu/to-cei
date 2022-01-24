@@ -79,7 +79,7 @@ def string_to_time(value: str | Tuple[str, str]) -> Time | Tuple[Time, Time]:
 
 class Charter(XmlAssembler):
     _abstract: Optional[str | etree._Element] = None
-    _abstract_bibls: List[str] = []
+    _abstract_sources: List[str] = []
     _archive: Optional[str] = None
     _chancellary_remarks: List[str] = []
     _condition: Optional[str] = None
@@ -101,13 +101,13 @@ class Charter(XmlAssembler):
     _seals: Optional[etree._Element | str | Seal | List[str] | List[Seal]] = None
     _tradition: Optional[str] = None
     _transcription: Optional[str | etree._Element] = None
-    _transcription_bibls: List[str] = []
+    _transcription_sources: List[str] = []
 
     def __init__(
         self,
         id_text: str,
         abstract: str | etree._Element = None,
-        abstract_bibls: str | List[str] = [],
+        abstract_sources: str | List[str] = [],
         archive: str = None,
         chancellary_remarks: str | List[str] = [],
         condition: str = None,
@@ -128,7 +128,7 @@ class Charter(XmlAssembler):
         seals: etree._Element | str | Seal | List[str] | List[Seal] = None,
         tradition: str = None,
         transcription: str | etree._Element = None,
-        transcription_bibls: str | List[str] = [],
+        transcription_sources: str | List[str] = [],
     ) -> None:
         """
         Creates a new charter object.
@@ -139,7 +139,7 @@ class Charter(XmlAssembler):
 
         abstract: The abstract either as a simple text or a complete cei:abstract etree._Element.
 
-        abstract_bibls: The bibliography source or sources for the abstract.
+        abstract_sources: The bibliography source or sources for the abstract.
 
         archive: The name of the archive that owns the original charter.
 
@@ -181,13 +181,13 @@ class Charter(XmlAssembler):
 
         transcription: The full text transcription of the charter either as text or a complete cei:tenor etree._Element object.
 
-        transcription_bibls: The bibliography source or sources for the transcription.
+        transcription_sources: The source or sources for the transcription.
         ----------
         """
         if not id_text:
             raise CeiException("id_text is not allowed to be empty")
         self.abstract = abstract
-        self.abstract_bibls = abstract_bibls
+        self.abstract_sources = abstract_sources
         self.archive = archive
         self.chancellary_remarks = chancellary_remarks
         self.condition = condition
@@ -210,7 +210,7 @@ class Charter(XmlAssembler):
         self.seals = seals
         self.tradition = tradition
         self.transcription = transcription
-        self.transcription_bibls = transcription_bibls
+        self.transcription_sources = transcription_sources
 
     # --------------------------------------------------------------------#
     #                             Properties                             #
@@ -229,12 +229,12 @@ class Charter(XmlAssembler):
         self._abstract = validate_element(value, "abstract")
 
     @property
-    def abstract_bibls(self):
-        return self._abstract_bibls
+    def abstract_sources(self):
+        return self._abstract_sources
 
-    @abstract_bibls.setter
-    def abstract_bibls(self, value: str | List[str] = []):
-        self._abstract_bibls = value if isinstance(value, List) else [value]
+    @abstract_sources.setter
+    def abstract_sources(self, value: str | List[str] = []):
+        self._abstract_sources = value if isinstance(value, List) else [value]
 
     @property
     def archive(self):
@@ -481,12 +481,12 @@ class Charter(XmlAssembler):
         self._transcription = validate_element(value, "tenor")
 
     @property
-    def transcription_bibls(self):
-        return self._transcription_bibls
+    def transcription_sources(self):
+        return self._transcription_sources
 
-    @transcription_bibls.setter
-    def transcription_bibls(self, value: str | List[str] = []):
-        self._transcription_bibls = value if isinstance(value, List) else [value]
+    @transcription_sources.setter
+    def transcription_sources(self, value: str | List[str] = []):
+        self._transcription_sources = value if isinstance(value, List) else [value]
 
     # --------------------------------------------------------------------#
     #                        Private CEI creators                        #
@@ -683,14 +683,16 @@ class Charter(XmlAssembler):
 
     def _create_cei_source_desc(self) -> Optional[etree._Element]:
         children = []
-        if self.abstract_bibls:
+        if self.abstract_sources:
             children.append(
-                CEI.sourceDescRegest(*[CEI.bibl(bibl) for bibl in self.abstract_bibls])
+                CEI.sourceDescRegest(
+                    *[CEI.bibl(bibl) for bibl in self.abstract_sources]
+                )
             )
-        if self.transcription_bibls:
+        if self.transcription_sources:
             children.append(
                 CEI.sourceDescVolltext(
-                    *[CEI.bibl(bibl) for bibl in self.transcription_bibls]
+                    *[CEI.bibl(bibl) for bibl in self.transcription_sources]
                 )
             )
         return CEI.sourceDesc(*children) if len(children) else None

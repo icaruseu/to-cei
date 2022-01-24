@@ -30,7 +30,7 @@ def test_is_valid_charter():
     charter = Charter(
         "1307 II 22",
         abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
-        abstract_bibls=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
+        abstract_sources=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
         archive="Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)",
         chancellary_remarks=[
             "commissio domini imperatoris in consilio",
@@ -52,7 +52,7 @@ def test_is_valid_charter():
         recipient="Heinrich, des Praitenvelders Schreiber",
         tradition="orig.",
         transcription="Ich Hainrich, des Praitenvelder Schreiber, [...] ze Rome gesatz wart.",
-        transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
+        transcription_sources="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
     )
     Validator().validate_cei(charter.to_xml())
 
@@ -119,50 +119,50 @@ def test_has_correct_abstract_bibl():
     bibl_text = "Bibl a"
     charter = Charter(
         id_text="1",
-        abstract_bibls=bibl_text,
+        abstract_sources=bibl_text,
     )
-    assert isinstance(charter.abstract_bibls, List)
+    assert isinstance(charter.abstract_sources, List)
     bibl = xps(charter, "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescRegest/*")
     assert bibl.text == bibl_text
 
 
-def test_has_correct_abstract_bibls():
+def test_has_correct_abstract_sources():
     bibl_texts = ["Bibl a", "Bibl b"]
-    bibls = xp(
+    sources = xp(
         Charter(
             id_text="1",
-            abstract_bibls=bibl_texts,
+            abstract_sources=bibl_texts,
         ),
         "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescRegest/*",
     )
-    assert len(bibls) == 2
-    assert bibls[0].text == bibl_texts[0]
-    assert bibls[1].text == bibl_texts[1]
+    assert len(sources) == 2
+    assert sources[0].text == bibl_texts[0]
+    assert sources[1].text == bibl_texts[1]
 
 
 def test_has_correct_transcription_bibl():
     bibl_text = "Bibl a"
     charter = Charter(
         id_text="1",
-        transcription_bibls=bibl_text,
+        transcription_sources=bibl_text,
     )
-    assert isinstance(charter.transcription_bibls, List)
-    bibls = xps(charter, "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*")
-    assert bibls.text == bibl_text
+    assert isinstance(charter.transcription_sources, List)
+    sources = xps(charter, "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*")
+    assert sources.text == bibl_text
 
 
-def test_has_correct_transcription_bibls():
+def test_has_correct_transcription_sources():
     bibl_texts = ["Bibl a", "Bibl b"]
-    bibls = xp(
+    sources = xp(
         Charter(
             id_text="1",
-            transcription_bibls=bibl_texts,
+            transcription_sources=bibl_texts,
         ),
         "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*",
     )
-    assert len(bibls) == 2
-    assert bibls[0].text == bibl_texts[0]
-    assert bibls[1].text == bibl_texts[1]
+    assert len(sources) == 2
+    assert sources[0].text == bibl_texts[0]
+    assert sources[1].text == bibl_texts[1]
 
 
 # --------------------------------------------------------------------#
