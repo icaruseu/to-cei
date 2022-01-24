@@ -82,6 +82,7 @@ class Charter(XmlAssembler):
     _abstract_sources: List[str] = []
     _archive: Optional[str] = None
     _chancellary_remarks: List[str] = []
+    _comments: List[str] = []
     _condition: Optional[str] = None
     _date: Optional[str | etree._Element] = None
     _date_quote: Optional[str | etree._Element] = None
@@ -115,6 +116,7 @@ class Charter(XmlAssembler):
         abstract_sources: str | List[str] = [],
         archive: str = None,
         chancellary_remarks: str | List[str] = [],
+        comments: str | List[str] = [],
         condition: str = None,
         date: str | etree._Element = None,
         date_quote: str | etree._Element = None,
@@ -154,6 +156,8 @@ class Charter(XmlAssembler):
         archive: The name of the archive that owns the original charter.
 
         chancellary_remarks: Chancellary remarks as a single text or list of texts.
+
+        comments: Diplomatic commentary as text or list of texts.
 
         condition: A description of the charter's condition in text form.
 
@@ -210,6 +214,7 @@ class Charter(XmlAssembler):
         self.abstract_sources = abstract_sources
         self.archive = archive
         self.chancellary_remarks = chancellary_remarks
+        self.comments = comments
         self.condition = condition
         self.date = date
         self.date_quote = date_quote
@@ -276,6 +281,14 @@ class Charter(XmlAssembler):
     @chancellary_remarks.setter
     def chancellary_remarks(self, value: str | List[str] = []):
         self._chancellary_remarks = [value] if isinstance(value, str) else value
+
+    @property
+    def comments(self):
+        return self._comments
+
+    @comments.setter
+    def comments(self, value: str | List[str] = []):
+        self._comments = [value] if isinstance(value, str) else value
 
     @property
     def condition(self):
@@ -644,6 +657,7 @@ class Charter(XmlAssembler):
             self._create_cei_list_bibl_faksimile(),
             self._create_cei_list_bibl_erw(),
             self._create_cei_quote_originaldatierung(),
+            self._create_cei_p(),
         )
         return CEI.diplomaticAnalysis(*children) if len(children) else None
 
@@ -729,6 +743,11 @@ class Charter(XmlAssembler):
             if self.notarial_authentication is None
             or isinstance(self.notarial_authentication, etree._Element)
             else CEI.notariusDesc(self.notarial_authentication)
+        )
+
+    def _create_cei_p(self) -> List[etree._Element]:
+        return (
+            [CEI.p(comment) for comment in self.comments] if len(self.comments) else []
         )
 
     def _create_cei_physical_desc(self) -> Optional[etree._Element]:

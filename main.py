@@ -11,6 +11,7 @@ if __name__ == "__main__":
                 "commissio domini imperatoris in consilio",
                 "Jüngerer Dorsualvermerk mit Regest",
             ],
+            comments="The diplomatic analysis is inconclusive",
             condition="Beschädigtes Pergament",
             date="1307 II 22",
             date_quote="an sand peters tage in der vasten, als er avf den stvl ze Rome gesatz wart",

@@ -36,6 +36,7 @@ def test_is_valid_charter():
             "commissio domini imperatoris in consilio",
             "Jüngerer Dorsualvermerk mit Regest",
         ],
+        comments="The diplomatic analysis is inconclusive",
         condition="Beschädigtes Pergament",
         date="1307 II 22",
         date_quote="an sand peters tage in der vasten, als er avf den stvl ze Rome gesatz wart",
@@ -199,6 +200,24 @@ def test_has_correct_chancellary_remarks_list():
     assert len(nota) == 2
     assert nota[0].text == chancellary_remarks[0]
     assert nota[1].text == chancellary_remarks[1]
+
+
+# --------------------------------------------------------------------#
+#                          Charter comments                          #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_comments():
+    comments = ["Comment a", "Comment b"]
+    charter = Charter(id_text="1", comments=comments)
+    assert charter._comments == comments
+    paragraphs = xp(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:diplomaticAnalysis/cei:p",
+    )
+    assert len(paragraphs) == 2
+    assert paragraphs[0].text == comments[0]
+    assert paragraphs[1].text == comments[1]
 
 
 # --------------------------------------------------------------------#
