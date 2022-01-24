@@ -99,7 +99,7 @@ class Charter(XmlAssembler):
     _notarial_authentication: Optional[str | etree._Element] = None
     _recipient: Optional[str | etree._Element] = None
     _seals: Optional[etree._Element | str | Seal | List[str] | List[Seal]] = None
-    _tradition_form: Optional[str] = None
+    _tradition: Optional[str] = None
     _transcription: Optional[str | etree._Element] = None
     _transcription_bibls: List[str] = []
 
@@ -126,7 +126,7 @@ class Charter(XmlAssembler):
         notarial_authentication: str | etree._Element = None,
         recipient: str | etree._Element = None,
         seals: etree._Element | str | Seal | List[str] | List[Seal] = None,
-        tradition_form: str = None,
+        tradition: str = None,
         transcription: str | etree._Element = None,
         transcription_bibls: str | List[str] = [],
     ) -> None:
@@ -177,7 +177,7 @@ class Charter(XmlAssembler):
 
         seals: The description of the seals of a charter, either as a single/list of simple text descriptions or Seal objects, or a complete cei:sealDesc etree._Element object.
 
-        tradition_form: The form of the charter's tradition, as an original, copy or something else. Can be any free text.
+        tradition: The status of tradition of the charter, as an original, copy or something else. Can be any free text.
 
         transcription: The full text transcription of the charter either as text or a complete cei:tenor etree._Element object.
 
@@ -208,7 +208,7 @@ class Charter(XmlAssembler):
         self.notarial_authentication = notarial_authentication
         self.recipient = recipient
         self.seals = seals
-        self.tradition_form = tradition_form
+        self.tradition = tradition
         self.transcription = transcription
         self.transcription_bibls = transcription_bibls
 
@@ -465,12 +465,12 @@ class Charter(XmlAssembler):
             self._seals = validated
 
     @property
-    def tradition_form(self):
-        return self._tradition_form
+    def tradition(self):
+        return self._tradition
 
-    @tradition_form.setter
-    def tradition_form(self, value: str = None):
-        self._tradition_form = value
+    @tradition.setter
+    def tradition(self, value: str = None):
+        self._tradition = value
 
     @property
     def transcription(self):
@@ -712,9 +712,7 @@ class Charter(XmlAssembler):
         )
 
     def _create_cei_traditio_form(self) -> Optional[etree._Element]:
-        return (
-            None if not self._tradition_form else CEI.traditioForm(self._tradition_form)
-        )
+        return None if not self._tradition else CEI.traditioForm(self._tradition)
 
     def _create_cei_witness_orig(self) -> Optional[etree._Element]:
         children = join(

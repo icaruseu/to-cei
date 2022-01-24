@@ -27,7 +27,7 @@ if __name__ == "__main__":
             notarial_authentication="Albertus Magnus",
             recipient="Heinrich, des Praitenvelders Schreiber",
             seals="2 Siegel",
-            tradition_form="orig.",
+            tradition="orig.",
             transcription="Ich Hainrich, des Praitenvelder Schreiber, [...] ze Rome gesatz wart.",
             transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
         ).to_string()

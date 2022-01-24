@@ -50,7 +50,7 @@ def test_is_valid_charter():
         notarial_authentication="Albertus Magnus",
         seals="2 Siegel",
         recipient="Heinrich, des Praitenvelders Schreiber",
-        tradition_form="orig.",
+        tradition="orig.",
         transcription="Ich Hainrich, des Praitenvelder Schreiber, [...] ze Rome gesatz wart.",
         transcription_bibls="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123-124",
     )
@@ -877,14 +877,14 @@ def test_raises_exception_for_incorrect_xml_transcription():
 # --------------------------------------------------------------------#
 
 
-def test_has_correct_tradition_form():
-    tradition_form = "orig."
-    charter = Charter(id_text="1", tradition_form=tradition_form)
-    assert charter.tradition_form == tradition_form
-    tradition_form_xml = xps(
+def test_has_correct_tradition():
+    tradition = "orig."
+    charter = Charter(id_text="1", tradition=tradition)
+    assert charter.tradition == tradition
+    tradition_xml = xps(
         charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:traditioForm"
     )
-    assert tradition_form_xml.text == tradition_form
+    assert tradition_xml.text == tradition
 
 
 # --------------------------------------------------------------------#
