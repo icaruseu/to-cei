@@ -89,6 +89,7 @@ class Charter(XmlAssembler):
     _date_value: Optional[Time | Tuple[Time, Time]] = None
     _dimensions: Optional[str] = None
     _external_link: Optional[str] = None
+    _footnotes: List[str] = []
     _graphic_urls: List[str] = []
     _id_norm: Optional[str] = None
     _id_old: Optional[str] = None
@@ -123,6 +124,7 @@ class Charter(XmlAssembler):
         date_value: DateValue = None,
         dimensions: str = None,
         external_link: str = None,
+        footnotes: str | List[str] = [],
         graphic_urls: str | List[str] = [],
         id_norm: str = None,
         id_old: str = None,
@@ -170,6 +172,8 @@ class Charter(XmlAssembler):
         dimensions: The description of the physical dimensions of the charter as text.
 
         external_link: A link to an external representation of the charter as text.
+
+        footnotes: Footnotes as text or list of texts.
 
         graphic_urls: A list of strings that represents the urls of various images representing the charter. Can bei either full urls or just the filenames of the image files, depending on the charter fond / collection settings.
 
@@ -222,6 +226,7 @@ class Charter(XmlAssembler):
             self.date_value = date_value
         self.dimensions = dimensions
         self.external_link = external_link
+        self.footnotes = footnotes
         self.graphic_urls = graphic_urls
         self.id_norm = id_norm
         self.id_old = id_old
@@ -394,6 +399,14 @@ class Charter(XmlAssembler):
                 )
             )
         self._external_link = value
+
+    @property
+    def footnotes(self):
+        return self._footnotes
+
+    @footnotes.setter
+    def footnotes(self, value):
+        self._footnotes = value
 
     @property
     def graphic_urls(self):
@@ -590,7 +603,8 @@ class Charter(XmlAssembler):
         return CEI.auth(*children) if len(children) else None
 
     def _create_cei_back(self) -> etree._Element:
-        return CEI.back()
+        children = join(self._create_cei_div_notes())
+        return CEI.back(*children)
 
     def _create_cei_bibls(self, bibls: List[str]) -> List[etree._Element]:
         return [CEI.bibl(bibl) for bibl in bibls]
@@ -660,6 +674,13 @@ class Charter(XmlAssembler):
             self._create_cei_p(),
         )
         return CEI.diplomaticAnalysis(*children) if len(children) else None
+
+    def _create_cei_div_notes(self) -> List[etree._Element]:
+        return (
+            CEI.divNotes(*[CEI.note(note) for note in self.footnotes])
+            if len(self.footnotes)
+            else []
+        )
 
     def _create_cei_figures(self) -> List[etree._Element]:
         return (

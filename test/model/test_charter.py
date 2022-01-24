@@ -43,6 +43,7 @@ def test_is_valid_charter():
         date_value=Time("1307-02-22", format="isot", scale="ut1"),
         dimensions="20x20cm",
         external_link="https://example.com/charters/1",
+        footnotes=["Siehe RI #1234", "Abweichend von Nr. 15"],
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
         issued_place="Wiener Neustadt",
         issuer="Konrad von Lintz",
@@ -565,6 +566,24 @@ def test_has_correct_single_figures():
         charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:figure/cei:graphic"
     )
     assert graphics_xml.get("url") == graphic_urls
+
+
+# --------------------------------------------------------------------#
+#                         Charter footnotes                          #
+# --------------------------------------------------------------------#
+
+
+def test_has_correct_footnotes():
+    footnotes = ["Footnote a", "Footnote b"]
+    charter = Charter(id_text="1", footnotes=footnotes)
+    assert charter._footnotes == footnotes
+    notes = xp(
+        charter,
+        "/cei:text/cei:back/cei:divNotes/cei:note",
+    )
+    assert len(notes) == 2
+    assert notes[0].text == footnotes[0]
+    assert notes[1].text == footnotes[1]
 
 
 # --------------------------------------------------------------------#

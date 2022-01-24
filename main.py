@@ -18,6 +18,7 @@ if __name__ == "__main__":
             date_value="13070222",
             dimensions="20x20cm",
             external_link="https://example.com/charters/1",
+            footnotes=["Siehe RI #1234", "Abweichend von Nr. 15"],
             graphic_urls=[
                 "K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"
             ],
