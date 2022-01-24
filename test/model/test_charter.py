@@ -45,10 +45,14 @@ def test_is_valid_charter():
         external_link="https://example.com/charters/1",
         footnotes=["Siehe RI #1234", "Abweichend von Nr. 15"],
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
+        index=["Arenga", CEI.index("Insulare Minuskel")],
+        index_geo_features=["Leithagebirge", CEI.geogName("Donau")],
+        index_organizations=["Bistum Passau", CEI.orgName("Erzbistum Salzburg")],
         index_persons=[
             "Hubert, der Schuster",
             CEI.persName("Antonia Müllerin, des Müllers Frau"),
         ],
+        index_places=["Wien", CEI.placeName("Wiener Neustadt")],
         issued_place="Wiener Neustadt",
         issuer="Konrad von Lintz",
         language="Deutsch",
@@ -632,15 +636,84 @@ def test_raises_exception_for_missing_id():
 
 
 # --------------------------------------------------------------------#
-#                       Charter index                        #
+#                       Charter index                                #
 # --------------------------------------------------------------------#
+
+
+def test_has_correct_index_geo_features():
+    index_geo_features = [
+        "Geo feature a",
+        CEI.geogName("Geo feature b"),
+    ]
+    charter = Charter(id_text="1", index_geo_features=index_geo_features)
+    assert charter.index_geo_features == index_geo_features
+    geog_names_xml = xp(charter, "/cei:text/cei:back/cei:geogName")
+    assert len(geog_names_xml) == 2
+    assert geog_names_xml[0].text == index_geo_features[0]
+    assert geog_names_xml[1].text == index_geo_features[1].text
+
+
+def test_raises_exception_for_invalid_index_geo_features_xml():
+    with pytest.raises(CeiException):
+        Charter(
+            id_text="1",
+            index_geo_features=[
+                CEI.persName("A person"),
+                CEI.geogName("An geog name"),
+            ],
+        )
+
+
+def test_has_correct_index_terms():
+    index = [
+        "Term a",
+        CEI.index("Term b"),
+    ]
+    charter = Charter(id_text="1", index=index)
+    assert charter.index == index
+    index_xml = xp(charter, "/cei:text/cei:back/cei:index")
+    assert len(index_xml) == 2
+    assert index_xml[0].text == index[0]
+    assert index_xml[1].text == index[1].text
+
+
+def test_raises_exception_for_invalid_index_terms_xml():
+    with pytest.raises(CeiException):
+        Charter(
+            id_text="1",
+            index=[CEI.persName("A person"), CEI.index("An index term")],
+        )
+
+
+def test_has_correct_index_organizations():
+    index_organizations = [
+        "Organization a",
+        CEI.orgName("Organization b"),
+    ]
+    charter = Charter(id_text="1", index_organizations=index_organizations)
+    assert charter.index_organizations == index_organizations
+    organization_names_xml = xp(charter, "/cei:text/cei:back/cei:orgName")
+    assert len(organization_names_xml) == 2
+    assert organization_names_xml[0].text == index_organizations[0]
+    assert organization_names_xml[1].text == index_organizations[1].text
+
+
+def test_raises_exception_for_invalid_index_organizations_xml():
+    with pytest.raises(CeiException):
+        Charter(
+            id_text="1",
+            index_organizations=[
+                CEI.persName("A person"),
+                CEI.orgName("An organization"),
+            ],
+        )
 
 
 def test_has_correct_index_persons():
     index_persons = [
-        "Witness a",
-        CEI.persName("Witness b"),
-        CEI.persName("Witness c", {"type": "Custom Type"}),
+        "Person a",
+        CEI.persName("Person b"),
+        CEI.persName("Person c", {"type": "Custom Type"}),
     ]
     charter = Charter(id_text="1", index_persons=index_persons)
     assert charter.index_persons == index_persons
@@ -656,7 +729,28 @@ def test_raises_exception_for_invalid_index_persons_xml():
     with pytest.raises(CeiException):
         Charter(
             id_text="1",
-            index_persons=[CEI.persName("A Person"), CEI.placeName("A place")],
+            index_persons=[CEI.persName("A person"), CEI.placeName("A place")],
+        )
+
+
+def test_has_correct_index_places():
+    index_places = [
+        "Place a",
+        CEI.placeName("Place b"),
+    ]
+    charter = Charter(id_text="1", index_places=index_places)
+    assert charter.index_places == index_places
+    place_names_xml = xp(charter, "/cei:text/cei:back/cei:placeName")
+    assert len(place_names_xml) == 2
+    assert place_names_xml[0].text == index_places[0]
+    assert place_names_xml[1].text == index_places[1].text
+
+
+def test_raises_exception_for_invalid_index_places_xml():
+    with pytest.raises(CeiException):
+        Charter(
+            id_text="1",
+            index_places=[CEI.persName("A person"), CEI.placeName("A place")],
         )
 
 

@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 from urllib.parse import quote
 
 from astropy.time import Time
@@ -94,7 +94,11 @@ class Charter(XmlAssembler):
     _id_norm: Optional[str] = None
     _id_old: Optional[str] = None
     _id_text: str = ""
+    _index: List[str | etree._Element] = []
+    _index_geo_features: List[str | etree._Element] = []
+    _index_organizations: List[str | etree._Element] = []
     _index_persons: List[str | etree._Element] = []
+    _index_places: List[str | etree._Element] = []
     _issued_place: Optional[str | etree._Element] = None
     _issuer: Optional[str | etree._Element] = None
     _language: Optional[str] = None
@@ -130,7 +134,11 @@ class Charter(XmlAssembler):
         graphic_urls: str | List[str] = [],
         id_norm: str = None,
         id_old: str = None,
+        index: List[str | etree._Element] = [],
+        index_geo_features: List[str | etree._Element] = [],
+        index_organizations: List[str | etree._Element] = [],
         index_persons: List[str | etree._Element] = [],
+        index_places: List[str | etree._Element] = [],
         issued_place: str | etree._Element = None,
         issuer: str | etree._Element = None,
         language: str = None,
@@ -185,7 +193,15 @@ class Charter(XmlAssembler):
 
         id_old: An old, now obsolete identifier of the charter.
 
-        index_persons: A list of persons or cei:persName etree._Element objects to be included in the person index.
+        index: A list of terms as texts or cei:index etree._Element objects to be included in the index.
+
+        index_geo_features: A list of geographical features as texts or cei:geogName etree._Element objects to be included in the index.
+
+        index_organizations: A list of organizations as texts or cei:orgName etree._Element objects to be included in the index.
+
+        index_persons: A list of persons as texts or cei:persName etree._Element objects to be included in the index.
+
+        index_places: A list of places as texts or cei:placeName etree._Element objects to be included in the index.
 
         issued_place: The place the charter has been issued at either as text or a complete cei:placeName etree._Element.
 
@@ -239,7 +255,11 @@ class Charter(XmlAssembler):
         self.id_norm = id_norm
         self.id_old = id_old
         self.id_text = id_text
+        self.index = index
+        self.index_geo_features = index_geo_features
+        self.index_organizations = index_organizations
         self.index_persons = index_persons
+        self.index_places = index_places
         self.issued_place = issued_place
         self.issuer = issuer
         self.language = language
@@ -451,12 +471,44 @@ class Charter(XmlAssembler):
         self._id_text = value
 
     @property
+    def index(self):
+        return self._index
+
+    @index.setter
+    def index(self, value: List[str | etree._Element] = []):
+        self._index = [validate_element(item, "index") for item in value]  # type: ignore
+
+    @property
+    def index_geo_features(self):
+        return self._index_geo_features
+
+    @index_geo_features.setter
+    def index_geo_features(self, value: List[str | etree._Element] = []):
+        self._index_geo_features = [validate_element(item, "geogName") for item in value]  # type: ignore
+
+    @property
+    def index_organizations(self):
+        return self._index_organizations
+
+    @index_organizations.setter
+    def index_organizations(self, value: List[str | etree._Element] = []):
+        self._index_organizations = [validate_element(item, "orgName") for item in value]  # type: ignore
+
+    @property
     def index_persons(self):
         return self._index_persons
 
     @index_persons.setter
     def index_persons(self, value: List[str | etree._Element] = []):
         self._index_persons = [validate_element(item, "persName") for item in value]  # type: ignore
+
+    @property
+    def index_places(self):
+        return self._index_places
+
+    @index_places.setter
+    def index_places(self, value: List[str | etree._Element] = []):
+        self._index_places = [validate_element(item, "placeName") for item in value]  # type: ignore
 
     @property
     def issued_place(self):
@@ -632,6 +684,10 @@ class Charter(XmlAssembler):
         children = join(
             [self._create_cei_pers_name(person, type="Zeuge") for person in self.witnesses],  # type: ignore
             [self._create_cei_pers_name(person) for person in self.index_persons],  # type: ignore
+            [self._create_cei_org_name(organization) for organization in self.index_organizations],  # type: ignore
+            [self._create_cei_place_name(place) for place in self.index_places],  # type: ignore
+            [self._create_cei_geog_name(geo_feature) for geo_feature in self.index_geo_features],  # type: ignore
+            [self._create_cei_index(term) for term in self.index],  # type: ignore
             self._create_cei_div_notes(),
         )
         return CEI.back(*children)
@@ -796,6 +852,21 @@ class Charter(XmlAssembler):
             else CEI.notariusDesc(self.notarial_authentication)
         )
 
+    def _create_cei_geog_name(
+        self, value: Optional[str | etree._Element]
+    ) -> Optional[etree._Element]:
+        return CEI.geogName(value) if isinstance(value, str) else value
+
+    def _create_cei_index(
+        self, value: Optional[str | etree._Element]
+    ) -> Optional[etree._Element]:
+        return CEI.index(value) if isinstance(value, str) else value
+
+    def _create_cei_org_name(
+        self, value: Optional[str | etree._Element]
+    ) -> Optional[etree._Element]:
+        return CEI.orgName(value) if isinstance(value, str) else value
+
     def _create_cei_p(self) -> List[etree._Element]:
         return (
             [CEI.p(comment) for comment in self.comments] if len(self.comments) else []
@@ -827,11 +898,7 @@ class Charter(XmlAssembler):
     def _create_cei_place_name(
         self, value: Optional[str | etree._Element]
     ) -> Optional[etree._Element]:
-        return (
-            None
-            if value is None
-            else (CEI.placeName(value) if isinstance(value, str) else value)
-        )
+        return CEI.placeName(value) if isinstance(value, str) else value
 
     def _create_cei_quote_originaldatierung(self) -> Optional[etree._Element]:
         return (
