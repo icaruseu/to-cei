@@ -1,7 +1,7 @@
 from lxml import etree
 
-from config import CEI, CEI_NS
-from helpers import join, ln, ns
+from to_cei.config import CEI, CEI_NS
+from to_cei.helpers import join, ln, ns
 
 
 def test_gets_correct_local_name():

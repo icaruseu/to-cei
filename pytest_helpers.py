@@ -2,8 +2,8 @@ from typing import Any, List
 
 from lxml import etree
 
-from config import CHARTER_NSS
-from to_cei.XmlAssembler import XmlAssembler
+from to_cei.config import CHARTER_NSS
+from to_cei.xml_assembler import XmlAssembler
 
 
 def e(value: Any) -> List[etree._Element]:

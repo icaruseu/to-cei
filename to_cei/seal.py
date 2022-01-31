@@ -2,9 +2,9 @@ from typing import List, Optional, Tuple
 
 from lxml import etree
 
-from config import CEI
-from helpers import validate_element
-from to_cei.XmlAssembler import XmlAssembler
+from to_cei.config import CEI
+from to_cei.helpers import validate_element
+from to_cei.xml_assembler import XmlAssembler
 
 
 class Seal(XmlAssembler):

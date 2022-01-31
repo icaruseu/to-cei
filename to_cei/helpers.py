@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from lxml import etree
 
-from config import CEI_NS
+from to_cei.config import CEI_NS
 
 
 def join(

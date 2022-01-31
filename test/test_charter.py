@@ -6,8 +6,8 @@ import pytest
 from astropy.time.core import Time
 from lxml import etree
 
-from config import CEI, CHARTER_NSS
-from helpers import ln
+from to_cei.config import CEI, CHARTER_NSS
+from to_cei.helpers import ln
 from to_cei.charter import NO_DATE_TEXT, NO_DATE_VALUE, Charter
 from to_cei.seal import Seal
 from to_cei.validator import Validator

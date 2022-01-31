@@ -1,7 +1,7 @@
 import pytest
 
-from config import CEI
 from pytest_helpers import xp, xps
+from to_cei.config import CEI
 from to_cei.seal import Seal
 from to_cei.validator import Validator
 

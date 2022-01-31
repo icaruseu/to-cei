@@ -1,8 +1,8 @@
 from lxml.builder import ElementMaker  # type: ignore
 
-from to_cei.filecache import FileCache
+from to_cei import filecache
 
-file_cache = FileCache()
+file_cache = filecache.FileCache()
 
 CEI_NS: str = "http://www.monasterium.net/NS/cei"
 

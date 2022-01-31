@@ -4,7 +4,7 @@ from typing import Any
 import xmlschema
 from lxml import etree
 
-import config
+from to_cei import config
 
 
 class Schema(str, Enum):

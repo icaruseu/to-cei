@@ -11,12 +11,13 @@ with open(path.join(pwd, "README.md"), encoding="utf-8") as f:
 # This call to setup() does all the work
 setup(
     name="to_cei",
-    version="0.1.0",
+    version="0.1.1",
     description="to-CEI",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/icaruseu/to-cei",
     author="Daniel Jeller",
+    author_email="it@icar-us.eu",
     license="GPL 3.0",
     classifiers=[
         "Intended Audience :: Developers",

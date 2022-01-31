@@ -1,11 +1,10 @@
-import os
 from typing import List
 
 from lxml import etree
 
-from config import CEI
 from to_cei.charter import Charter
-from to_cei.XmlAssembler import XmlAssembler
+from to_cei.config import CEI
+from to_cei.xml_assembler import XmlAssembler
 
 
 class Charter_group(XmlAssembler):

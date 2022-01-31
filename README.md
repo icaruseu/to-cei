@@ -7,6 +7,10 @@ serialize to xml files ready to be imported into Monasterium.net.
 
 Install by executing `pip install -r requirements.txt`.
 
+## Building
+
+Build by executing `python -m build`.
+
 ## Testing
 
 Launch tests with `pytest`.

@@ -1,8 +1,10 @@
 astropy
+build
 importlib-metadata # needed to resolve dependency conflicts
 lxml
 lxml-stubs
 pytest
 requests
+twine
 typing-extensions # needed to resolve dependency conflicts
 xmlschema

@@ -1,4 +1,3 @@
-import os
 import re
 from datetime import datetime
 from typing import List, Optional, Tuple
@@ -7,10 +6,10 @@ from urllib.parse import quote
 from astropy.time import Time
 from lxml import etree
 
-from config import CEI
-from helpers import join, validate_element
+from to_cei.config import CEI
+from to_cei.helpers import join, validate_element
 from to_cei.seal import Seal
-from to_cei.XmlAssembler import XmlAssembler
+from to_cei.xml_assembler import XmlAssembler
 
 MOM_DATE_REGEX = re.compile(
     r"^(?P<year>-?[129]?[0-9][0-9][0-9])(?P<month>[019][0-9])(?P<day>[01239][0-9])$"
