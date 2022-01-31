@@ -6,6 +6,8 @@ file_cache = FileCache()
 
 CEI_NS: str = "http://www.monasterium.net/NS/cei"
 
-CHARTER_NSS = {"cei": CEI_NS}
+CEI_PREFIX: str = "cei"
+
+CHARTER_NSS = {CEI_PREFIX: CEI_NS}
 
 CEI = ElementMaker(namespace=CEI_NS, nsmap=CHARTER_NSS)

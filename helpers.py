@@ -5,7 +5,9 @@ from lxml import etree
 from config import CEI_NS
 
 
-def join(*values: etree._Element | List[etree._Element]) -> List[etree._Element]:
+def join(
+    *values: Optional[etree._Element | List[etree._Element]],
+) -> List[etree._Element]:
     """Joins all non-empty values in a list."""
     all = []
     for value in values:

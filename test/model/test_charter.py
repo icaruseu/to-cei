@@ -1,4 +1,5 @@
 from datetime import datetime
+import pathlib
 from typing import List
 
 import pytest
@@ -76,6 +77,14 @@ def test_is_valid_charter():
     )
     Validator().validate_cei(charter.to_xml())
 
+def test_writes_correct_file(tmp_path):
+    d = tmp_path
+    charter = Charter("1A")
+    charter.to_file(d)
+    out = pathlib.Path(d, "1A.cei.xml")
+    assert out.is_file()
+    written = etree.parse(str(out))
+    Validator().validate_cei(written.getroot())
 
 # --------------------------------------------------------------------#
 #                          Charter abstract                          #

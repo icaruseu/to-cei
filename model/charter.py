@@ -1,3 +1,4 @@
+import os
 import re
 from datetime import datetime
 from typing import List, Optional, Tuple
@@ -988,3 +989,11 @@ class Charter(XmlAssembler):
 
     def to_xml(self) -> etree._Element:
         return self._create_cei_text()
+
+    def to_file(self, folder: str = None):
+        """Writes the xml representation of the charter to a file. The filename is generated from the normalized charter id.
+
+        Args:
+            folder (str): The folder to write the file to. If this is ommitted, the file is written to the place where the script is 
+        """
+        return super(Charter, self).to_file(self.id_norm + ".cei", folder=folder)
