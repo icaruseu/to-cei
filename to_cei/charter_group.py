@@ -7,7 +7,7 @@ from to_cei.config import CEI
 from to_cei.xml_assembler import XmlAssembler
 
 
-class Charter_group(XmlAssembler):
+class CharterGroup(XmlAssembler):
     _charters: List[Charter] = []
     _name: str = ""
 
@@ -47,6 +47,6 @@ class Charter_group(XmlAssembler):
         return xml
 
     def to_file(self, folder: str = None):
-        return super(Charter_group, self).to_file(
+        return super(CharterGroup, self).to_file(
             self.name.lower().replace(" ", "_") + ".cei.group", folder=folder
         )

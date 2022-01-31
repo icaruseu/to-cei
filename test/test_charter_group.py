@@ -4,18 +4,18 @@ import pytest
 from lxml import etree
 
 from to_cei.charter import Charter
-from to_cei.charter_group import Charter_group
+from to_cei.charter_group import CharterGroup
 from to_cei.validator import Validator
 
 
 def test_is_valid_cei():
-    group = Charter_group("Charter group", [Charter("1A"), Charter("1b")])
+    group = CharterGroup("Charter group", [Charter("1A"), Charter("1b")])
     Validator().validate_cei(group.to_xml())
 
 
 def test_writes_correct_file(tmp_path):
     d = tmp_path
-    group = Charter_group("Charter group", [Charter("1A"), Charter("1b")])
+    group = CharterGroup("Charter group", [Charter("1A"), Charter("1b")])
     group.to_file(d)
     out = pathlib.Path(d, "charter_group.cei.group.xml")
     assert out.is_file()
@@ -25,4 +25,4 @@ def test_writes_correct_file(tmp_path):
 
 def test_raises_exception_for_empty_name():
     with pytest.raises(ValueError):
-        Charter_group("")
+        CharterGroup("")
