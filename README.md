@@ -5,7 +5,7 @@ serialize to xml files ready to be imported into Monasterium.net.
 
 ## Installing
 
-Install by executing `pip install -r requirements.txt`.
+Install by executing `pip install to_cei`.
 
 ## Building
 
