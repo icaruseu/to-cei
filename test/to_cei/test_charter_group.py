@@ -3,9 +3,9 @@ import pathlib
 import pytest
 from lxml import etree
 
-from model.charter import Charter
-from model.charter_group import Charter_group
-from model.validator import Validator
+from to_cei.charter import Charter
+from to_cei.charter_group import Charter_group
+from to_cei.validator import Validator
 
 
 def test_is_valid_cei():

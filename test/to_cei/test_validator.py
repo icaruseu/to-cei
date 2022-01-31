@@ -1,6 +1,6 @@
 import pytest
 
-from model.validator import Validator
+from to_cei.validator import Validator
 
 
 def test_no_exception_for_correct_cei(valid_cei):

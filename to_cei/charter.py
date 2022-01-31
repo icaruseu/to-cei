@@ -9,8 +9,8 @@ from lxml import etree
 
 from config import CEI
 from helpers import join, validate_element
-from model.seal import Seal
-from model.XmlAssembler import XmlAssembler
+from to_cei.seal import Seal
+from to_cei.XmlAssembler import XmlAssembler
 
 MOM_DATE_REGEX = re.compile(
     r"^(?P<year>-?[129]?[0-9][0-9][0-9])(?P<month>[019][0-9])(?P<day>[01239][0-9])$"

@@ -1,14 +1,11 @@
 # Monasterium to-CEI converter
 
-This script converts various input formats to CEI-XML.
+Models a CEI charters and charter groups as python objects with the ability to
+serialize to xml files ready to be imported into Monasterium.net.
 
 ## Installing
 
 Install by executing `pip install -r requirements.txt`.
-
-## Running
-
-Start the script by executing `python main.py`.
 
 ## Testing
 

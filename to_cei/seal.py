@@ -4,7 +4,7 @@ from lxml import etree
 
 from config import CEI
 from helpers import validate_element
-from model.XmlAssembler import XmlAssembler
+from to_cei.XmlAssembler import XmlAssembler
 
 
 class Seal(XmlAssembler):

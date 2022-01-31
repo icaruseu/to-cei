@@ -1,9 +1,9 @@
 import pytest
 
 from config import CEI
-from model.seal import Seal
-from model.validator import Validator
 from pytest_helpers import xp, xps
+from to_cei.seal import Seal
+from to_cei.validator import Validator
 
 
 def test_is_seal_valid():

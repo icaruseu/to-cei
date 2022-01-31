@@ -8,9 +8,9 @@ from lxml import etree
 
 from config import CEI, CHARTER_NSS
 from helpers import ln
-from model.charter import NO_DATE_TEXT, NO_DATE_VALUE, Charter
-from model.seal import Seal
-from model.validator import Validator
+from to_cei.charter import NO_DATE_TEXT, NO_DATE_VALUE, Charter
+from to_cei.seal import Seal
+from to_cei.validator import Validator
 from pytest_helpers import xp, xps
 
 # --------------------------------------------------------------------#

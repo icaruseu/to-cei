@@ -3,7 +3,7 @@ from typing import Any, List
 from lxml import etree
 
 from config import CHARTER_NSS
-from model.XmlAssembler import XmlAssembler
+from to_cei.XmlAssembler import XmlAssembler
 
 
 def e(value: Any) -> List[etree._Element]:

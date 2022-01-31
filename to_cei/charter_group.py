@@ -4,8 +4,8 @@ from typing import List
 from lxml import etree
 
 from config import CEI
-from model.charter import Charter
-from model.XmlAssembler import XmlAssembler
+from to_cei.charter import Charter
+from to_cei.XmlAssembler import XmlAssembler
 
 
 class Charter_group(XmlAssembler):
