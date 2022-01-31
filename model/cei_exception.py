@@ -1,2 +1,0 @@
-class CeiException(Exception):
-    pass

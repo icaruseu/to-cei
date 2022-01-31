@@ -8,7 +8,6 @@ from lxml import etree
 
 from config import CEI
 from helpers import join, validate_element
-from model.cei_exception import CeiException
 from model.seal import Seal
 from model.XmlAssembler import XmlAssembler
 
@@ -26,6 +25,14 @@ DateValue = Optional[Date | Tuple[Date, Date]]
 
 
 def to_mom_date_value(time: Time) -> str:
+    """Converts a astroyp.Time object to a mom-compatible date string.
+
+    Args:
+        time (Time): A astropy.Time object
+
+    Returns:
+        A date string compatible with mom-ca.
+    """
     year = time.ymdhms[0]
     month = time.ymdhms[1]
     day = time.ymdhms[2]
@@ -37,18 +44,30 @@ def to_mom_date_value(time: Time) -> str:
 
 
 def mom_date_to_time(value: str) -> Time:
+    """Converts a mom-compatible date string into an astropy.Time object if possible.
+
+    Args:
+        value (str): A mom-compatible date string in the form of -?[129]?[0-9][0-9][0-9][019][0-9][01239][0-9]
+
+    Returns:
+        A astropy.Time object
+
+    Raises:
+        ValueError: If the provided value cannot be converted to a valid astropy.Time object
+
+    """
     match = re.search(MOM_DATE_REGEX, value)
     if match is None:
-        raise CeiException("Invalid mom date value provided: '{}'".format(value))
+        raise ValueError("Invalid mom date value provided: '{}'".format(value))
     year = match.group("year")
     if not isinstance(year, str):
-        raise CeiException("Invalid year in mom date value: {}".format(year))
+        raise ValueError("Invalid year in mom date value: {}".format(year))
     month = match.group("month")
     if not isinstance(month, str):
-        raise CeiException("Invalid month in mom date value: {}".format(month))
+        raise ValueError("Invalid month in mom date value: {}".format(month))
     day = match.group("day")
     if not isinstance(day, str):
-        raise CeiException("Invalid day in mom date value: {}".format(day))
+        raise ValueError("Invalid day in mom date value: {}".format(day))
     return Time(
         {"year": int(year), "month": int(month), "day": int(day)},
         format="ymdhms",
@@ -57,8 +76,19 @@ def mom_date_to_time(value: str) -> Time:
 
 
 def string_to_time(value: str | Tuple[str, str]) -> Time | Tuple[Time, Time]:
+    """Converts a single date string or a tuple of date strings to a matching single or tuple astropy.Time object.
+
+    Args:
+        value (str | Tuple[str, str]): A single or tuple of date strings. Can be either an iso-compatible or a mom-ca compatible date string.
+
+    Returns:
+        A single or tuple astropy.Time objectself.
+
+    Raises:
+        ValueError: If the date/s cannot be converted to astropy.Time objects.
+    """
     if isinstance(value, Tuple) and len(value) != 2:
-        raise CeiException("Invalid date tuple provided: '{}'".format(value))
+        raise ValueError("Invalid date tuple provided: '{}'".format(value))
     try:
         # Try to directly convert from an iso date string
         return (
@@ -159,85 +189,50 @@ class Charter(XmlAssembler):
         """
         Creates a new charter object.
 
-        Parameters:
-        ----------
-        id_text: The human readable id of the charter. If id_norm is not present, id_text will be used in a normalized form. If it is missing or empty, an exception will be raised.
+        Args:
+            id_text: The human readable id of the charter. If id_norm is not present, id_text will be used in a normalized form. If it is missing or empty, an exception will be raised.
+            abstract: The abstract either as a simple text or a complete cei:abstract etree._Element.
+            abstract_sources: The bibliography source or sources for the abstract.
+            archive: The name of the archive that owns the original charter.
+            chancellary_remarks: Chancellary remarks as a single text or list of texts.
+            comments: Diplomatic commentary as text or list of texts.
+            condition: A description of the charter's condition in text form.
+            date: The date the charter was issued at either as text to use when converting to CEI or a complete cei:date or cei:dateRange etree._Element. If the date is given as an XML element, date_value needs to remain emptyself. Missing values will be constructed as having a date of "No date" in the XML.
+            date_quote: The charter's date in the original text either as text or a complete cel:quoteOriginaldatierung etree._Element object.
+            date_value: The actual date value in case the value in date is just a text and not an XML element. Can bei either an ISO date string, a MOM-compatible string, a python datetime object (can only be between years 1 and 9999) or an astropy Time object - or a tuple with two such values. If a single value is given, it is interpreted as an exact value, otherwise the two values will be used as from/to attributes of a cei:dateRange object. Missing values will be added to the xml as @value="99999999" to conform with the MOM data practices. When a date_value is added and date is an XML element, an exception is raised.
+            dimensions: The description of the physical dimensions of the charter as text.
+            external_link: A link to an external representation of the charter as text.
+            footnotes: Footnotes as text or list of texts.
+            graphic_urls: A list of strings that represents the urls of various images representing the charter. Can bei either full urls or just the filenames of the image files, depending on the charter fond / collection settings.
+            id_norm: A normalized id for the charter. It will be percent-encoded to ensure only valid characters are used. If it is ommitted, the normalized version of id_text will be used.
+            id_old: An old, now obsolete identifier of the charter.
+            index: A list of terms as texts or cei:index etree._Element objects to be included in the index.
+            index_geo_features: A list of geographical features as texts or cei:geogName etree._Element objects to be included in the index.
+            index_organizations: A list of organizations as texts or cei:orgName etree._Element objects to be included in the index.
+            index_persons: A list of persons as texts or cei:persName etree._Element objects to be included in the index.
+            index_places: A list of places as texts or cei:placeName etree._Element objects to be included in the index.
+            issued_place: The place the charter has been issued at either as text or a complete cei:placeName etree._Element.
+            issuer: The issuer of the charter either as text or a complete cei:issuer etree._Element.
+            language: The language of the charter as text.
+            literature: A single text or list of texts descibing unspecified literature for the charter.
+            literature_abstracts: A single text or list of texts descibing abstracts of the charter.
+            literature_depictions: A single text or list of texts descibing depictions of the charter.
+            literature_editions: A single text or list of texts descibing editions of the charter.
+            literature_secondary: A single text or list of texts descibing secondary literature about the charter.
+            material: A string description of the material the charter is made of.
+            notarial_authentication: A string or complete cei:notariusDesc etree._Element that describes the notarial_authentication of the charter.
+            recipient: The recipient of the charter either as text or a complete cei:issuer etree._Element.
+            seals: The description of the seals of a charter, either as a single/list of simple text descriptions or Seal objects, or a complete cei:sealDesc etree._Element object.
+            tradition: The status of tradition of the charter, as an original, copy or something else. Can be any free text.
+            transcription: The full text transcription of the charter either as text or a complete cei:tenor etree._Element object.
+            transcription_sources: The source or sources for the transcription.
+            witnesses: The list of witnesses either as text or complete cei:persName etree._Element objects. A '@type="Zeuge"' attribute will be added for all etree._Element list items.
 
-        abstract: The abstract either as a simple text or a complete cei:abstract etree._Element.
-
-        abstract_sources: The bibliography source or sources for the abstract.
-
-        archive: The name of the archive that owns the original charter.
-
-        chancellary_remarks: Chancellary remarks as a single text or list of texts.
-
-        comments: Diplomatic commentary as text or list of texts.
-
-        condition: A description of the charter's condition in text form.
-
-        date: The date the charter was issued at either as text to use when converting to CEI or a complete cei:date or cei:dateRange etree._Element. If the date is given as an XML element, date_value needs to remain emptyself. Missing values will be constructed as having a date of "No date" in the XML.
-
-        date_quote: The charter's date in the original text either as text or a complete cel:quoteOriginaldatierung etree._Element object.
-
-        date_value: The actual date value in case the value in date is just a text and not an XML element. Can bei either an ISO date string, a MOM-compatible string, a python datetime object (can only be between years 1 and 9999) or an astropy Time object - or a tuple with two such values. If a single value is given, it is interpreted as an exact value, otherwise the two values will be used as from/to attributes of a cei:dateRange object. Missing values will be added to the xml as @value="99999999" to conform with the MOM data practices. When a date_value is added and date is an XML element, an exception is raised.
-
-        dimensions: The description of the physical dimensions of the charter as text.
-
-        external_link: A link to an external representation of the charter as text.
-
-        footnotes: Footnotes as text or list of texts.
-
-        graphic_urls: A list of strings that represents the urls of various images representing the charter. Can bei either full urls or just the filenames of the image files, depending on the charter fond / collection settings.
-
-        id_norm: A normalized id for the charter. It will be percent-encoded to ensure only valid characters are used. If it is ommitted, the normalized version of id_text will be used.
-
-        id_old: An old, now obsolete identifier of the charter.
-
-        index: A list of terms as texts or cei:index etree._Element objects to be included in the index.
-
-        index_geo_features: A list of geographical features as texts or cei:geogName etree._Element objects to be included in the index.
-
-        index_organizations: A list of organizations as texts or cei:orgName etree._Element objects to be included in the index.
-
-        index_persons: A list of persons as texts or cei:persName etree._Element objects to be included in the index.
-
-        index_places: A list of places as texts or cei:placeName etree._Element objects to be included in the index.
-
-        issued_place: The place the charter has been issued at either as text or a complete cei:placeName etree._Element.
-
-        issuer: The issuer of the charter either as text or a complete cei:issuer etree._Element.
-
-        language: The language of the charter as text.
-
-        literature: A single text or list of texts descibing unspecified literature for the charter.
-
-        literature_abstracts: A single text or list of texts descibing abstracts of the charter.
-
-        literature_depictions: A single text or list of texts descibing depictions of the charter.
-
-        literature_editions: A single text or list of texts descibing editions of the charter.
-
-        literature_secondary: A single text or list of texts descibing secondary literature about the charter.
-
-        material: A string description of the material the charter is made of.
-
-        notarial_authentication: A string or complete cei:notariusDesc etree._Element that describes the notarial_authentication of the charter.
-
-        recipient: The recipient of the charter either as text or a complete cei:issuer etree._Element.
-
-        seals: The description of the seals of a charter, either as a single/list of simple text descriptions or Seal objects, or a complete cei:sealDesc etree._Element object.
-
-        tradition: The status of tradition of the charter, as an original, copy or something else. Can be any free text.
-
-        transcription: The full text transcription of the charter either as text or a complete cei:tenor etree._Element object.
-
-        transcription_sources: The source or sources for the transcription.
-
-        witnesses: The list of witnesses either as text or complete cei:persName etree._Element objects. A '@type="Zeuge"' attribute will be added for all etree._Element list items.
-        ----------
+        Raises:
+            ValueError: Raised when various values don't make sense in the context of the charter creation.
         """
         if not id_text:
-            raise CeiException("id_text is not allowed to be empty")
+            raise ValueError("id_text is not allowed to be empty")
         self.abstract = abstract
         self.abstract_sources = abstract_sources
         self.archive = archive
@@ -288,7 +283,7 @@ class Charter(XmlAssembler):
     @abstract.setter
     def abstract(self, value: str | etree._Element = None):
         if self.issuer is not None and isinstance(self.issuer, etree._Element):
-            raise CeiException(
+            raise ValueError(
                 "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
             )
         self._abstract = validate_element(value, "abstract")
@@ -357,7 +352,7 @@ class Charter(XmlAssembler):
     def date_value(self, value: DateValue = None):
         # Don't allow to directly set date values if an XML date element is present
         if isinstance(self.date, etree._Element):
-            raise CeiException(
+            raise ValueError(
                 "Not allowed to set date value directly if the date is already an XML element."
             )
         # Unknown MOM date (99999999)
@@ -406,7 +401,7 @@ class Charter(XmlAssembler):
         ):
             self._date_value = string_to_time(value)  # type: ignore
         else:
-            raise CeiException("Invalid date value: '{}'".format(value))
+            raise ValueError("Invalid date value: '{}'".format(value))
 
     @property
     def dimensions(self):
@@ -423,7 +418,7 @@ class Charter(XmlAssembler):
     @external_link.setter
     def external_link(self, value: str = None):
         if value and not re.match(SIMPLE_URL_REGEX, value):
-            raise CeiException(
+            raise ValueError(
                 "'{}' does not look like a valid external URL. If you think it is valid, please contact the to-CEI library maintainers and tell them.".format(
                     value
                 )
@@ -525,7 +520,7 @@ class Charter(XmlAssembler):
     @issuer.setter
     def issuer(self, value: str | etree._Element = None):
         if value is not None and isinstance(self.abstract, etree._Element):
-            raise CeiException(
+            raise ValueError(
                 "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
             )
         self._issuer = validate_element(value, "issuer")
@@ -601,7 +596,7 @@ class Charter(XmlAssembler):
     @recipient.setter
     def recipient(self, value: str | etree._Element = None):
         if value is not None and isinstance(self.abstract, etree._Element):
-            raise CeiException(
+            raise ValueError(
                 "XML element content for both recipient and abstract is not allowed, please join the recipient in the XML abstract yourself"
             )
         self._recipient = validate_element(value, "recipient")

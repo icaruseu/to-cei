@@ -7,7 +7,6 @@ from lxml import etree
 
 from config import CEI, CHARTER_NSS
 from helpers import ln
-from model.cei_exception import CeiException
 from model.charter import NO_DATE_TEXT, NO_DATE_VALUE, Charter
 from model.seal import Seal
 from model.validator import Validator
@@ -111,7 +110,7 @@ def test_has_correct_xml_abstract():
 
 def test_raises_exception_for_incorrect_xml_abstract():
     incorrect_element = CEI.persName("A person")
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", abstract=incorrect_element)
 
 
@@ -422,7 +421,7 @@ def test_has_correct_xml_date_range():
 def test_raises_exception_when_initializing_with_xml_date_and_value():
     date_value = "17980101"
     date = CEI.date("12. 10. 1789", {"value": date_value})
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", date=date, date_value=date_value)
 
 
@@ -436,7 +435,7 @@ def test_raises_exception_for_invalid_date_value():
 
 
 def test_raises_exception_for_invalid_date_value_in_iso_format():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(
             id_text="1",
             date="in 1789",
@@ -445,7 +444,7 @@ def test_raises_exception_for_invalid_date_value_in_iso_format():
 
 
 def test_raises_exception_for_invalid_date_value_in_mom_format():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(
             id_text="1",
             date="in 1789",
@@ -454,7 +453,7 @@ def test_raises_exception_for_invalid_date_value_in_mom_format():
 
 
 def test_raises_exception_for_incorrect_date_value_pair():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(
             id_text="1",
             date="in 1789",
@@ -464,7 +463,7 @@ def test_raises_exception_for_incorrect_date_value_pair():
 
 def test_raises_exception_for_incorrect_xml_date():
     incorrect_element = CEI.persName("A person")
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", date=incorrect_element)
 
 
@@ -473,7 +472,7 @@ def test_raises_exception_when_setting_date_value_for_xml_date():
     date_to = "17981231"
     date = CEI.dateRange("12. 10. 1789", {"from": date_from, "to": date_to})
     charter = Charter(id_text="1", date=date)
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         charter.date_value = (date_from, date_to)
 
 
@@ -508,7 +507,7 @@ def test_has_correct_xml_date_quote():
 
 def test_raises_exception_for_incorrect_xml_date_quote():
     incorrect_element = CEI.persName("A person")
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", date_quote=incorrect_element)
 
 
@@ -546,7 +545,7 @@ def test_has_correct_external_url():
 
 def test_raises_exception_for_invalid_external_link():
     localhost = "http://localhost"
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", external_link=localhost)
 
 
@@ -631,7 +630,7 @@ def test_has_correct_id_old():
 
 
 def test_raises_exception_for_missing_id():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="")
 
 
@@ -654,7 +653,7 @@ def test_has_correct_index_geo_features():
 
 
 def test_raises_exception_for_invalid_index_geo_features_xml():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(
             id_text="1",
             index_geo_features=[
@@ -678,7 +677,7 @@ def test_has_correct_index_terms():
 
 
 def test_raises_exception_for_invalid_index_terms_xml():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(
             id_text="1",
             index=[CEI.persName("A person"), CEI.index("An index term")],
@@ -699,7 +698,7 @@ def test_has_correct_index_organizations():
 
 
 def test_raises_exception_for_invalid_index_organizations_xml():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(
             id_text="1",
             index_organizations=[
@@ -726,7 +725,7 @@ def test_has_correct_index_persons():
 
 
 def test_raises_exception_for_invalid_index_persons_xml():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(
             id_text="1",
             index_persons=[CEI.persName("A person"), CEI.placeName("A place")],
@@ -747,7 +746,7 @@ def test_has_correct_index_places():
 
 
 def test_raises_exception_for_invalid_index_places_xml():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(
             id_text="1",
             index_places=[CEI.persName("A person"), CEI.placeName("A place")],
@@ -781,7 +780,7 @@ def test_has_correct_xml_issued_place():
 
 def test_raises_exception_for_incorrect_xml_issued_place():
     incorrect_element = CEI.persName("A person")
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", issued_place=incorrect_element)
 
 
@@ -817,12 +816,12 @@ def test_has_correct_abstract_with_xml_issuer():
 
 def test_raises_exception_for_incorrect_xml_issuer():
     incorrect_element = CEI.persName("A person")
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", issuer=incorrect_element)
 
 
 def test_raises_exception_for_xml_abstract_with_issuer():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", abstract=CEI.abstract("An abstract"), issuer="An issuer")
 
 
@@ -957,7 +956,7 @@ def test_has_correct_xml_notarial_authentication():
 
 def test_raises_exception_for_incorrect_xml_notarial_authentication():
     incorrect_element = CEI.persName("A person")
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", notarial_authentication=incorrect_element)
 
 
@@ -996,7 +995,7 @@ def test_has_correct_abstract_with_xml_recipient():
 
 
 def test_raises_exception_for_xml_abstract_with_recipient():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(
             id_text="1", abstract=CEI.abstract("An abstract"), recipient="An recipient"
         )
@@ -1004,7 +1003,7 @@ def test_raises_exception_for_xml_abstract_with_recipient():
 
 def test_raises_exception_for_incorrect_xml_recipient():
     incorrect_element = CEI.issuer("A person")
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", recipient=incorrect_element)
 
 
@@ -1116,7 +1115,7 @@ def test_has_correct_xml_transcription():
 
 def test_raises_exception_for_incorrect_xml_transcription():
     incorrect_element = CEI.persName("A person")
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(id_text="1", transcription=incorrect_element)
 
 
@@ -1166,7 +1165,7 @@ def test_has_correct_witnesses():
 
 
 def test_raises_exception_for_invalid_witnesses_xml():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Charter(
             id_text="1", witnesses=[CEI.persName("A Person"), CEI.placeName("A place")]
         )

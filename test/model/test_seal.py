@@ -1,7 +1,6 @@
 import pytest
 
 from config import CEI
-from model.cei_exception import CeiException
 from model.seal import Seal
 from model.validator import Validator
 from pytest_helpers import xp, xps
@@ -105,5 +104,5 @@ def test_has_correct_xml_sigillant():
 
 
 def test_raises_exception_for_wrong_sigillant_xml():
-    with pytest.raises(CeiException):
+    with pytest.raises(ValueError):
         Seal(sigillant=CEI.placeName())

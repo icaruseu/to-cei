@@ -1,6 +1,8 @@
 astropy
+importlib-metadata # needed to resolve dependency conflicts
 lxml
 lxml-stubs
 pytest
 requests
+typing-extensions # needed to resolve dependency conflicts
 xmlschema
