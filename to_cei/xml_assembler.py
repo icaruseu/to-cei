@@ -18,7 +18,7 @@ class XmlAssembler(ABC):
         return (
             ""
             if xml is None
-            else etree.tostring(xml, encoding="unicode", pretty_print=True)
+            else str(etree.tostring(xml, encoding="unicode", pretty_print=True))
         )
 
     def to_file(
@@ -27,7 +27,6 @@ class XmlAssembler(ABC):
         folder: str | Path = None,
         inclusive_ns_prefixes: List[str] = [],
     ):
-        print(name, folder)
         xml = self.to_xml()
         if xml is None:
             raise Exception("Failed to read xml")
@@ -40,8 +39,10 @@ class XmlAssembler(ABC):
                 else os.path.abspath(os.getcwd())
             )
         )
+        os.makedirs(folder, exist_ok=True)
         etree.ElementTree(xml).write(
             os.path.join(folder, name + ".xml"),
+            encoding="UTF-8",
             pretty_print=True,
             inclusive_ns_prefixes=[CEI_PREFIX] + inclusive_ns_prefixes,
         )
