@@ -8,7 +8,7 @@ from to_cei import config
 
 
 class Schema(str, Enum):
-    CEI = "https://www.monasterium.net/mom/resource/?atomid=tag:www.monasterium.net,2011:/mom/resource/xsd/cei"
+    CEI = "https://raw.githubusercontent.com/icaruseu/mom-ca/master/my/XRX/src/mom/app/cei/xsd/cei.xsd"
 
 
 class Validator:
