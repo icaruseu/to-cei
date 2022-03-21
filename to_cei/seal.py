@@ -16,11 +16,11 @@ class Seal(XmlAssembler):
 
     def __init__(
         self,
-        condition: str = None,
-        dimensions: str = None,
-        legend: str | List[Tuple[str, str]] = [],
-        material: str = None,
-        sigillant: str | etree._Element = None,
+        condition: Optional[str] = None,
+        dimensions: Optional[str] = None,
+        legend: Optional[str | List[Tuple[str, str]]] = [],
+        material: Optional[str] = None,
+        sigillant: Optional[str | etree._Element] = None,
     ) -> None:
         """
         Creates a seal instance.
@@ -52,39 +52,43 @@ class Seal(XmlAssembler):
         return self._condition
 
     @condition.setter
-    def condition(self, value: str = None):
-        self._condition = value
+    def condition(self, value: Optional[str] = None):
+        self._condition = value if isinstance(value, str) and len(value) else None
 
     @property
     def dimensions(self):
         return self._dimensions
 
     @dimensions.setter
-    def dimensions(self, value: str = None):
-        self._dimensions = value
+    def dimensions(self, value: Optional[str] = None):
+        self._dimensions = value if isinstance(value, str) and len(value) else None
 
     @property
     def legend(self):
         return self._legend
 
     @legend.setter
-    def legend(self, value: str | List[Tuple[str, str]] = []):
-        self._legend = value
+    def legend(self, value: Optional[str | List[Tuple[str, str]]] = []):
+        self._legend = (
+            []
+            if value is None or (isinstance(value, str) and len(value) == 0)
+            else value
+        )
 
     @property
     def material(self):
         return self._material
 
     @material.setter
-    def material(self, value: str = None):
-        self._material = value
+    def material(self, value: Optional[str] = None):
+        self._material = value if isinstance(value, str) and len(value) else None
 
     @property
     def sigillant(self):
         return self._sigillant
 
     @sigillant.setter
-    def sigillant(self, value: str | etree._Element = None):
+    def sigillant(self, value: Optional[str | etree._Element] = None):
         self._sigillant = validate_element(value, "persName", "orgName")
 
     # --------------------------------------------------------------------#

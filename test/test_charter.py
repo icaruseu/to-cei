@@ -1,17 +1,17 @@
-from datetime import datetime
 import pathlib
+from datetime import datetime
 from typing import List
 
 import pytest
 from astropy.time.core import Time
 from lxml import etree
 
+from pytest_helpers import xp, xps
+from to_cei.charter import NO_DATE_TEXT, NO_DATE_VALUE, Charter
 from to_cei.config import CEI, CHARTER_NSS
 from to_cei.helpers import ln
-from to_cei.charter import NO_DATE_TEXT, NO_DATE_VALUE, Charter
 from to_cei.seal import Seal
 from to_cei.validator import Validator
-from pytest_helpers import xp, xps
 
 # --------------------------------------------------------------------#
 #                         Charter as a whole                         #
@@ -77,6 +77,7 @@ def test_is_valid_charter():
     )
     Validator().validate_cei(charter.to_xml())
 
+
 def test_writes_correct_file(tmp_path):
     d = tmp_path
     charter = Charter("1A")
@@ -85,6 +86,7 @@ def test_writes_correct_file(tmp_path):
     assert out.is_file()
     written = etree.parse(str(out))
     Validator().validate_cei(written.getroot())
+
 
 # --------------------------------------------------------------------#
 #                          Charter abstract                          #
@@ -117,6 +119,12 @@ def test_has_correct_xml_abstract():
     assert pers_name_xml.text == pers_name
 
 
+def test_has_no_abstract_for_empty_text():
+    abstract = ""
+    charter = Charter(id_text="1", abstract=abstract)
+    assert charter.abstract == None
+
+
 def test_raises_exception_for_incorrect_xml_abstract():
     incorrect_element = CEI.persName("A person")
     with pytest.raises(ValueError):
@@ -139,6 +147,12 @@ def test_has_correct_charter_archive():
     assert archive_xml.text == archive
 
 
+def test_has_no_archive_for_empty_text():
+    archive = ""
+    charter = Charter(id_text="1", archive=archive)
+    assert charter.archive == None
+
+
 # --------------------------------------------------------------------#
 #                       Charter bibliographies                       #
 # --------------------------------------------------------------------#
@@ -155,6 +169,18 @@ def test_has_correct_abstract_bibl():
     assert bibl.text == bibl_text
 
 
+def test_has_no_sources_for_empty_string():
+    bibl_texts = ""
+    sources = xp(
+        Charter(
+            id_text="1",
+            abstract_sources=bibl_texts,
+        ),
+        "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescRegest/*",
+    )
+    assert len(sources) == 0
+
+
 def test_has_correct_abstract_sources():
     bibl_texts = ["Bibl a", "Bibl b"]
     sources = xp(
@@ -169,7 +195,7 @@ def test_has_correct_abstract_sources():
     assert sources[1].text == bibl_texts[1]
 
 
-def test_has_correct_transcription_bibl():
+def test_has_correct_transcription_source():
     bibl_text = "Bibl a"
     charter = Charter(
         id_text="1",
@@ -180,6 +206,15 @@ def test_has_correct_transcription_bibl():
         charter, "/cei:text/cei:front/cei:sourceDesc/cei:sourceDescVolltext/*"
     )
     assert sources.text == bibl_text
+
+
+def test_has_no_transcription_sources_for_empty_text():
+    bibl_text = ""
+    charter = Charter(
+        id_text="1",
+        transcription_sources=bibl_text,
+    )
+    assert len(charter.transcription_sources) == 0
 
 
 def test_has_correct_transcription_sources():
@@ -205,7 +240,7 @@ def test_has_correct_single_chancellary_remark():
     chancellary_remarks = "Remark"
     charter = Charter(id_text="1", chancellary_remarks=chancellary_remarks)
     assert isinstance(charter.chancellary_remarks, List)
-    assert charter._chancellary_remarks[0] == chancellary_remarks
+    assert charter.chancellary_remarks[0] == chancellary_remarks
     nota = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:nota")
     assert nota.text == chancellary_remarks
 
@@ -213,11 +248,17 @@ def test_has_correct_single_chancellary_remark():
 def test_has_correct_chancellary_remarks_list():
     chancellary_remarks = ["Remark a", "Remark b"]
     charter = Charter(id_text="1", chancellary_remarks=chancellary_remarks)
-    assert charter._chancellary_remarks == chancellary_remarks
+    assert charter.chancellary_remarks == chancellary_remarks
     nota = xp(charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:nota")
     assert len(nota) == 2
     assert nota[0].text == chancellary_remarks[0]
     assert nota[1].text == chancellary_remarks[1]
+
+
+def test_has_no_chancellary_remarks_for_empty_text():
+    chancellary_remarks = ""
+    charter = Charter(id_text="1", chancellary_remarks=chancellary_remarks)
+    assert len(charter.chancellary_remarks) == 0
 
 
 # --------------------------------------------------------------------#
@@ -228,7 +269,7 @@ def test_has_correct_chancellary_remarks_list():
 def test_has_correct_comments():
     comments = ["Comment a", "Comment b"]
     charter = Charter(id_text="1", comments=comments)
-    assert charter._comments == comments
+    assert charter.comments == comments
     paragraphs = xp(
         charter,
         "/cei:text/cei:body/cei:chDesc/cei:diplomaticAnalysis/cei:p",
@@ -236,6 +277,12 @@ def test_has_correct_comments():
     assert len(paragraphs) == 2
     assert paragraphs[0].text == comments[0]
     assert paragraphs[1].text == comments[1]
+
+
+def test_has_no_comments_for_empty_string():
+    comments = ""
+    charter = Charter(id_text="1", comments=comments)
+    assert len(charter.comments) == 0
 
 
 # --------------------------------------------------------------------#
@@ -254,6 +301,12 @@ def test_has_correct_charter_condition():
     assert condition_xml.text == condition
 
 
+def test_has_no_condition_for_empty_text():
+    condition = ""
+    charter = Charter(id_text="1", condition=condition)
+    assert charter.condition == None
+
+
 # --------------------------------------------------------------------#
 #                            Charter date                             #
 # --------------------------------------------------------------------#
@@ -261,6 +314,21 @@ def test_has_correct_charter_condition():
 
 def test_has_correct_date_range_with_99999999():
     charter = Charter(id_text="1", date="unknown", date_value=("99999999", "99999999"))
+    assert charter.date == "unknown"
+    assert charter.date_value == None
+    date_xml = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
+    assert date_xml.text == "unknown"
+    assert date_xml.get("value") == NO_DATE_VALUE
+
+
+def test_has_no_date_for_empty_text():
+    charter = Charter(id_text="1", date="")
+    assert charter.date == None
+    assert charter.date_value == None
+
+
+def test_has_no_date_for_empty_value():
+    charter = Charter(id_text="1", date="unknown", date_value="")
     assert charter.date == "unknown"
     assert charter.date_value == None
     date_xml = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:date")
@@ -501,6 +569,12 @@ def test_has_correct_text_date_quote():
     assert date_quote_xml.text == date_quote
 
 
+def test_has_no_quote_for_empty_text():
+    date_quote = ""
+    charter = Charter(id_text="1", date_quote=date_quote)
+    assert charter.date_quote == None
+
+
 def test_has_correct_xml_date_quote():
     date_quote = CEI.quoteOriginaldatierung(
         "Original dating with ", CEI.sup("a"), " superscript"
@@ -536,6 +610,12 @@ def test_has_correct_charter_dimensions():
     assert dimensions_xml.text == dimensions
 
 
+def test_has_no_dimensions_for_empty_text():
+    dimensions = ""
+    charter = Charter(id_text="1", dimensions=dimensions)
+    assert charter.dimensions == None
+
+
 # --------------------------------------------------------------------#
 #                        Charter external url                        #
 # --------------------------------------------------------------------#
@@ -552,6 +632,12 @@ def test_has_correct_external_url():
     assert external_link_xml.get("target") == external_link
 
 
+def test_has_no_external_url_for_empty_text():
+    external_link = ""
+    charter = Charter(id_text="1", external_link=external_link)
+    assert charter.external_link == None
+
+
 def test_raises_exception_for_invalid_external_link():
     localhost = "http://localhost"
     with pytest.raises(ValueError):
@@ -563,7 +649,7 @@ def test_raises_exception_for_invalid_external_link():
 # --------------------------------------------------------------------#
 
 
-def test_has_correct_list_figures():
+def test_has_correct_list_graphic_urls():
     graphic_urls = ["Figure 1.jgp", "figure_2.png"]
     charter = Charter(id_text="1", graphic_urls=graphic_urls)
     assert charter.graphic_urls == graphic_urls
@@ -575,7 +661,7 @@ def test_has_correct_list_figures():
     assert graphics_xml[1].get("url") == graphic_urls[1]
 
 
-def test_has_correct_single_figures():
+def test_has_correct_single_graphic_url():
     graphic_urls = "Figure 1.jgp"
     charter = Charter(id_text="1", graphic_urls=graphic_urls)
     assert charter.graphic_urls[0] == graphic_urls
@@ -583,6 +669,12 @@ def test_has_correct_single_figures():
         charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:figure/cei:graphic"
     )
     assert graphics_xml.get("url") == graphic_urls
+
+
+def test_has_empty_graphic_urls_for_empty_text():
+    graphic_urls = ""
+    charter = Charter(id_text="1", graphic_urls=graphic_urls)
+    assert len(charter.graphic_urls) == 0
 
 
 # --------------------------------------------------------------------#
@@ -601,6 +693,12 @@ def test_has_correct_footnotes():
     assert len(notes) == 2
     assert notes[0].text == footnotes[0]
     assert notes[1].text == footnotes[1]
+
+
+def test_has_no_footnotes_for_empty_text():
+    footnotes = ""
+    charter = Charter(id_text="1", footnotes=footnotes)
+    assert len(charter._footnotes) == 0
 
 
 # --------------------------------------------------------------------#
@@ -630,12 +728,23 @@ def test_has_correct_id_norm():
     assert idno.text == id_text
 
 
+def test_has_correct_id_norm_for_empty_text():
+    id = "1307-12-01"
+    charter = Charter(id_text=id, id_norm="")
+    assert charter.id_norm == id
+
+
 def test_has_correct_id_old():
     id_old = "123456 α"
     idno = xps(
         Charter(id_text="1307 II 22", id_old=id_old), "/cei:text/cei:body/cei:idno"
     )
     assert idno.get("old") == id_old
+
+
+def test_has_no_id_old_for_empty_text():
+    charter = Charter(id_text="1307-12-01", id_old="")
+    assert charter.id_old == None
 
 
 def test_raises_exception_for_missing_id():
@@ -777,6 +886,12 @@ def test_has_correct_text_issued_place():
     assert issued_place_xml.text == issued_place
 
 
+def test_has_no_issued_place_for_empty_text():
+    issued_place = ""
+    charter = Charter(id_text="1", issued_place=issued_place)
+    assert charter.issued_place == None
+
+
 def test_has_correct_xml_issued_place():
     issued_place = CEI.placeName("Wien")
     charter = Charter(id_text="1", issued_place=issued_place)
@@ -808,6 +923,15 @@ def test_has_correct_abstract_with_text_issuer():
     assert charter.issuer == issuer
     issuer_xml = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
     assert issuer_xml.text == issuer
+
+
+def test_has_correct_abstract_with_empty_issuer():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    issuer = ""
+    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
+    assert charter.issuer == None
 
 
 def test_has_correct_abstract_with_xml_issuer():
@@ -847,7 +971,13 @@ def test_has_correct_language():
         charter,
         "/cei:text/cei:body/cei:chDesc/cei:lang_MOM",
     )
-    language_xml.text == language
+    assert language_xml.text == language
+
+
+def test_has_no_language_for_empty_string():
+    language = ""
+    charter = Charter(id_text="1", language=language)
+    assert charter.language == None
 
 
 # --------------------------------------------------------------------#
@@ -868,6 +998,12 @@ def test_has_correct_literature():
     assert literature_xml[1].text == literature[1]
 
 
+def test_has_no_literature_for_empty_text():
+    literature = ""
+    charter = Charter(id_text="1", literature=literature)
+    assert len(charter.literature) == 0
+
+
 def test_has_correct_literature_abstracts():
     literature_abstracts = ["Entry 1", "Entry 2"]
     charter = Charter(id_text="1", literature_abstracts=literature_abstracts)
@@ -879,6 +1015,12 @@ def test_has_correct_literature_abstracts():
     assert len(literature_abstracts_xml) == 2
     assert literature_abstracts_xml[0].text == literature_abstracts[0]
     assert literature_abstracts_xml[1].text == literature_abstracts[1]
+
+
+def test_has_no_literature_abstracts_for_empty_text():
+    literature_abstracts = ""
+    charter = Charter(id_text="1", literature_abstracts=literature_abstracts)
+    assert len(charter.literature_abstracts) == 0
 
 
 def test_has_correct_literature_depictions():
@@ -894,6 +1036,12 @@ def test_has_correct_literature_depictions():
     assert literature_depictions_xml[1].text == literature_depictions[1]
 
 
+def test_has_no_literature_depictions_for_empty_text():
+    literature_depictions = ""
+    charter = Charter(id_text="1", literature_depictions=literature_depictions)
+    assert len(charter.literature_depictions) == 0
+
+
 def test_has_correct_literature_editions():
     literature_editions = ["Entry 1", "Entry 2"]
     charter = Charter(id_text="1", literature_editions=literature_editions)
@@ -907,6 +1055,12 @@ def test_has_correct_literature_editions():
     assert literature_editions_xml[1].text == literature_editions[1]
 
 
+def test_has_no_literature_editions_for_empty_text():
+    literature_editions = ""
+    charter = Charter(id_text="1", literature_editions=literature_editions)
+    assert len(charter.literature_editions) == 0
+
+
 def test_has_correct_literature_secondary():
     literature_secondary = ["Entry 1", "Entry 2"]
     charter = Charter(id_text="1", literature_secondary=literature_secondary)
@@ -918,6 +1072,12 @@ def test_has_correct_literature_secondary():
     assert len(literature_secondary_xml) == 2
     assert literature_secondary_xml[0].text == literature_secondary[0]
     assert literature_secondary_xml[1].text == literature_secondary[1]
+
+
+def test_has_no_literature_secondary_for_empty_text():
+    literature_secondary = ""
+    charter = Charter(id_text="1", literature_secondary=literature_secondary)
+    assert len(charter.literature_secondary) == 0
 
 
 # --------------------------------------------------------------------#
@@ -936,6 +1096,12 @@ def test_has_correct_material():
     assert material_xml.text == material
 
 
+def test_has_no_material_for_empty_text():
+    material = ""
+    charter = Charter(id_text="1", material=material)
+    assert charter.material == None
+
+
 # --------------------------------------------------------------------#
 #                        Charter notarial authentication             #
 # --------------------------------------------------------------------#
@@ -950,6 +1116,12 @@ def test_has_correct_text_notarial_authentication():
         "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:auth/cei:notariusDesc",
     )
     assert notarial_authentication_xml.text == notarial_authentication
+
+
+def test_has_no_text_notarial_authentication_for_empty_text():
+    notarial_authentication = ""
+    charter = Charter(id_text="1", notarial_authentication=notarial_authentication)
+    assert charter.notarial_authentication == None
 
 
 def test_has_correct_xml_notarial_authentication():
@@ -986,6 +1158,15 @@ def test_has_correct_abstract_with_text_recipient():
         charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:recipient"
     )
     assert recipient_xml.text == recipient
+
+
+def test_has_abstract_without_text_recipient_for_empty_text():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    recipient = ""
+    charter = Charter(id_text="1", abstract=abstract, recipient=recipient)
+    assert charter.recipient == None
 
 
 def test_has_correct_abstract_with_xml_recipient():
@@ -1032,6 +1213,11 @@ def test_has_correct_seal_description_xml():
     assert len(seals_xml) == 2
     assert seals_xml[0].text == "Seal 1"
     assert seals_xml[1].text == "Seal 2"
+
+
+def test_has_no_seal_description_for_empty_text():
+    charter = Charter(id_text="1", seals="")
+    assert charter.seals == None
 
 
 def test_has_correct_seal_text_description():
@@ -1111,6 +1297,12 @@ def test_has_correct_text_transcription():
     assert transcription_xml.text == transcription
 
 
+def test_has_no_text_transcription_for_empty_text():
+    transcription = ""
+    charter = Charter(id_text="1", transcription=transcription)
+    assert charter.transcription == None
+
+
 def test_has_correct_xml_transcription():
     transcription = CEI.tenor("Tenor with ", CEI.sup("a"), " superscript")
     charter = Charter(id_text="1", transcription=transcription)
@@ -1141,6 +1333,12 @@ def test_has_correct_tradition():
         charter, "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:traditioForm"
     )
     assert tradition_xml.text == tradition
+
+
+def test_has_no_tradition_for_empty_text():
+    tradition = ""
+    charter = Charter(id_text="1", tradition=tradition)
+    assert charter.tradition == None
 
 
 # --------------------------------------------------------------------#

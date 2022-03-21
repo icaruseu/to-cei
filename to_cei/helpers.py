@@ -31,6 +31,8 @@ def ns(element: etree._Element) -> str:
 def validate_element(
     value: Optional[str | etree._Element], *tags: str
 ) -> Optional[str | etree._Element]:
+    if isinstance(value, str) and not len(value):
+        return None
     if isinstance(value, etree._Element):
         if ns(value) != CEI_NS:
             raise ValueError(

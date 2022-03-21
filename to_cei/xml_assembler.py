@@ -24,7 +24,7 @@ class XmlAssembler(ABC):
     def to_file(
         self,
         name: str,
-        folder: str | Path = None,
+        folder: Optional[str | Path] = None,
         inclusive_ns_prefixes: List[str] = [],
     ):
         xml = self.to_xml()

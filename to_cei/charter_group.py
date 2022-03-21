@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from lxml import etree
 
@@ -46,7 +46,7 @@ class CharterGroup(XmlAssembler):
         )
         return xml
 
-    def to_file(self, folder: str = None):
+    def to_file(self, folder: Optional[str] = None):
         return super(CharterGroup, self).to_file(
             self.name.lower().replace(" ", "_") + ".cei.group", folder=folder
         )
