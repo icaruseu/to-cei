@@ -3,7 +3,7 @@ from typing import List, Optional, Tuple
 from lxml import etree
 
 from to_cei.config import CEI
-from to_cei.helpers import validate_element
+from to_cei.helpers import get_str, get_str_or_element
 from to_cei.xml_assembler import XmlAssembler
 
 
@@ -53,7 +53,7 @@ class Seal(XmlAssembler):
 
     @condition.setter
     def condition(self, value: Optional[str] = None):
-        self._condition = value if isinstance(value, str) and len(value) else None
+        self._condition = get_str(value)
 
     @property
     def dimensions(self):
@@ -61,7 +61,7 @@ class Seal(XmlAssembler):
 
     @dimensions.setter
     def dimensions(self, value: Optional[str] = None):
-        self._dimensions = value if isinstance(value, str) and len(value) else None
+        self._dimensions = get_str(value)
 
     @property
     def legend(self):
@@ -71,7 +71,7 @@ class Seal(XmlAssembler):
     def legend(self, value: Optional[str | List[Tuple[str, str]]] = []):
         self._legend = (
             []
-            if value is None or (isinstance(value, str) and len(value) == 0)
+            if value is None or (isinstance(value, str) and not len(value))
             else value
         )
 
@@ -81,7 +81,7 @@ class Seal(XmlAssembler):
 
     @material.setter
     def material(self, value: Optional[str] = None):
-        self._material = value if isinstance(value, str) and len(value) else None
+        self._material = get_str(value)
 
     @property
     def sigillant(self):
@@ -89,7 +89,7 @@ class Seal(XmlAssembler):
 
     @sigillant.setter
     def sigillant(self, value: Optional[str | etree._Element] = None):
-        self._sigillant = validate_element(value, "persName", "orgName")
+        self._sigillant = get_str_or_element(value, "persName", "orgName")
 
     # --------------------------------------------------------------------#
     #                           Public methods                           #

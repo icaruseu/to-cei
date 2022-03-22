@@ -28,7 +28,19 @@ def ns(element: etree._Element) -> str:
     return etree.QName(element.tag).namespace
 
 
-def validate_element(
+def get_str(value: Optional[str] = None) -> Optional[str]:
+    return value if value is not None and len(value) else None
+
+
+def get_str_list(value: Optional[str | List[str]] = []) -> List[str]:
+    return (
+        []
+        if value is None or (isinstance(value, str) and not len(value))
+        else (value if isinstance(value, List) else [value])
+    )
+
+
+def get_str_or_element(
     value: Optional[str | etree._Element], *tags: str
 ) -> Optional[str | etree._Element]:
     if isinstance(value, str) and not len(value):
@@ -47,3 +59,15 @@ def validate_element(
                 )
             )
     return value
+
+
+def get_str_or_element_list(
+    values: Optional[List[str | etree._Element]], *tags: str
+) -> List[str | etree._Element]:
+    result = []
+    if values is not None:
+        for value in values:
+            value = get_str_or_element(value, *tags)
+            if value is not None:
+                result.append(value)
+    return result

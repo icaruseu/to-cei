@@ -7,7 +7,8 @@ from astropy.time import Time
 from lxml import etree
 
 from to_cei.config import CEI
-from to_cei.helpers import join, validate_element
+from to_cei.helpers import (get_str, get_str_list, get_str_or_element,
+                            get_str_or_element_list, join)
 from to_cei.seal import Seal
 from to_cei.xml_assembler import XmlAssembler
 
@@ -187,7 +188,7 @@ class Charter(XmlAssembler):
         witnesses: Optional[List[str | etree._Element]] = [],
     ) -> None:
         """
-        Creates a new charter object.
+        Creates a new charter object. Empty strings in the parameters are treated similar to None values.
 
         Args:
             id_text: The human readable id of the charter. If id_norm is not present, id_text will be used in a normalized form. If it is missing or empty, an exception will be raised.
@@ -286,7 +287,7 @@ class Charter(XmlAssembler):
             raise ValueError(
                 "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
             )
-        self._abstract = validate_element(value, "abstract")
+        self._abstract = get_str_or_element(value, "abstract")
 
     @property
     def abstract_sources(self):
@@ -294,11 +295,7 @@ class Charter(XmlAssembler):
 
     @abstract_sources.setter
     def abstract_sources(self, value: Optional[str | List[str]] = []):
-        self._abstract_sources = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else (value if isinstance(value, List) else [value])
-        )
+        self._abstract_sources = get_str_list(value)
 
     @property
     def archive(self):
@@ -306,7 +303,7 @@ class Charter(XmlAssembler):
 
     @archive.setter
     def archive(self, value: Optional[str] = None):
-        self._archive = value if value is not None and len(value) else None
+        self._archive = get_str(value)
 
     @property
     def chancellary_remarks(self):
@@ -314,11 +311,7 @@ class Charter(XmlAssembler):
 
     @chancellary_remarks.setter
     def chancellary_remarks(self, value: Optional[str | List[str]] = []):
-        self._chancellary_remarks = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else ([value] if isinstance(value, str) else value)
-        )
+        self._chancellary_remarks = get_str_list(value)
 
     @property
     def comments(self):
@@ -326,11 +319,7 @@ class Charter(XmlAssembler):
 
     @comments.setter
     def comments(self, value: Optional[str | List[str]] = []):
-        self._comments = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else ([value] if isinstance(value, str) else value)
-        )
+        self._comments = get_str_list(value)
 
     @property
     def condition(self):
@@ -338,7 +327,7 @@ class Charter(XmlAssembler):
 
     @condition.setter
     def condition(self, value: Optional[str] = None):
-        self._condition = value if isinstance(value, str) and len(value) else None
+        self._condition = get_str(value)
 
     @property
     def date(self):
@@ -346,7 +335,7 @@ class Charter(XmlAssembler):
 
     @date.setter
     def date(self, value: Optional[str | etree._Element] = None):
-        self._date = validate_element(value, "date", "dateRange")
+        self._date = get_str_or_element(value, "date", "dateRange")
 
     @property
     def date_quote(self):
@@ -354,7 +343,7 @@ class Charter(XmlAssembler):
 
     @date_quote.setter
     def date_quote(self, value: Optional[str | etree._Element] = None):
-        self._date_quote = validate_element(value, "quoteOriginaldatierung")
+        self._date_quote = get_str_or_element(value, "quoteOriginaldatierung")
 
     @property
     def date_value(self):
@@ -423,7 +412,7 @@ class Charter(XmlAssembler):
 
     @dimensions.setter
     def dimensions(self, value: Optional[str] = None):
-        self._dimensions = value if isinstance(value, str) and len(value) else None
+        self._dimensions = get_str(value)
 
     @property
     def external_link(self):
@@ -447,11 +436,7 @@ class Charter(XmlAssembler):
 
     @footnotes.setter
     def footnotes(self, value: Optional[str | List[str]] = []):
-        self._footnotes = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else ([value] if isinstance(value, str) else value)
-        )
+        self._footnotes = get_str_list(value)
 
     @property
     def graphic_urls(self):
@@ -459,11 +444,7 @@ class Charter(XmlAssembler):
 
     @graphic_urls.setter
     def graphic_urls(self, value: Optional[str | List[str]] = []):
-        self._graphic_urls = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else ([value] if isinstance(value, str) else value)
-        )
+        self._graphic_urls = get_str_list(value)
 
     @property
     def id_norm(self):
@@ -471,7 +452,7 @@ class Charter(XmlAssembler):
 
     @id_norm.setter
     def id_norm(self, value: Optional[str] = None):
-        self._id_norm = value if isinstance(value, str) and len(value) else None
+        self._id_norm = get_str(value)
 
     @property
     def id_old(self):
@@ -479,7 +460,7 @@ class Charter(XmlAssembler):
 
     @id_old.setter
     def id_old(self, value: Optional[str] = None):
-        self._id_old = value if isinstance(value, str) and len(value) else None
+        self._id_old = get_str(value)
 
     @property
     def id_text(self):
@@ -495,7 +476,7 @@ class Charter(XmlAssembler):
 
     @index.setter
     def index(self, value: Optional[List[str | etree._Element]] = []):
-        self._index = [validate_element(item, "index") for item in value] if isinstance(value, List) else []  # type: ignore
+        self._index = get_str_or_element_list(value, "index")
 
     @property
     def index_geo_features(self):
@@ -503,7 +484,7 @@ class Charter(XmlAssembler):
 
     @index_geo_features.setter
     def index_geo_features(self, value: Optional[List[str | etree._Element]] = []):
-        self._index_geo_features = [validate_element(item, "geogName") for item in value] if isinstance(value, List) else []  # type: ignore
+        self._index_geo_features = get_str_or_element_list(value, "geogName")
 
     @property
     def index_organizations(self):
@@ -511,7 +492,7 @@ class Charter(XmlAssembler):
 
     @index_organizations.setter
     def index_organizations(self, value: Optional[List[str | etree._Element]] = []):
-        self._index_organizations = [validate_element(item, "orgName") for item in value] if isinstance(value, List) else []  # type: ignore
+        self._index_organizations = get_str_or_element_list(value, "orgName")
 
     @property
     def index_persons(self):
@@ -519,7 +500,7 @@ class Charter(XmlAssembler):
 
     @index_persons.setter
     def index_persons(self, value: Optional[List[str | etree._Element]] = []):
-        self._index_persons = [validate_element(item, "persName") for item in value] if isinstance(value, List) else []  # type: ignore
+        self._index_persons = get_str_or_element_list(value, "persName")
 
     @property
     def index_places(self):
@@ -527,7 +508,7 @@ class Charter(XmlAssembler):
 
     @index_places.setter
     def index_places(self, value: Optional[List[str | etree._Element]] = []):
-        self._index_places = [validate_element(item, "placeName") for item in value] if isinstance(value, List) else []  # type: ignore
+        self._index_places = get_str_or_element_list(value, "placeName")
 
     @property
     def issued_place(self):
@@ -535,7 +516,7 @@ class Charter(XmlAssembler):
 
     @issued_place.setter
     def issued_place(self, value: Optional[str | etree._Element] = None):
-        self._issued_place = validate_element(value, "placeName")
+        self._issued_place = get_str_or_element(value, "placeName")
 
     @property
     def issuer(self):
@@ -547,7 +528,7 @@ class Charter(XmlAssembler):
             raise ValueError(
                 "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
             )
-        self._issuer = validate_element(value, "issuer")
+        self._issuer = get_str_or_element(value, "issuer")
 
     @property
     def language(self):
@@ -555,7 +536,7 @@ class Charter(XmlAssembler):
 
     @language.setter
     def language(self, value: Optional[str] = None):
-        self._language = value if isinstance(value, str) and len(value) else None
+        self._language = get_str(value)
 
     @property
     def literature(self):
@@ -563,11 +544,7 @@ class Charter(XmlAssembler):
 
     @literature.setter
     def literature(self, value: Optional[str | List[str]] = []):
-        self._literature = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else ([value] if isinstance(value, str) else value)
-        )
+        self._literature = get_str_list(value)
 
     @property
     def literature_abstracts(self):
@@ -575,11 +552,7 @@ class Charter(XmlAssembler):
 
     @literature_abstracts.setter
     def literature_abstracts(self, value: Optional[str | List[str]] = []):
-        self._literature_abstracts = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else ([value] if isinstance(value, str) else value)
-        )
+        self._literature_abstracts = get_str_list(value)
 
     @property
     def literature_depictions(self):
@@ -587,11 +560,7 @@ class Charter(XmlAssembler):
 
     @literature_depictions.setter
     def literature_depictions(self, value: Optional[str | List[str]] = []):
-        self._literature_depictions = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else ([value] if isinstance(value, str) else value)
-        )
+        self._literature_depictions = get_str_list(value)
 
     @property
     def literature_editions(self):
@@ -599,11 +568,7 @@ class Charter(XmlAssembler):
 
     @literature_editions.setter
     def literature_editions(self, value: Optional[str | List[str]] = []):
-        self._literature_editions = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else ([value] if isinstance(value, str) else value)
-        )
+        self._literature_editions = get_str_list(value)
 
     @property
     def literature_secondary(self):
@@ -611,11 +576,7 @@ class Charter(XmlAssembler):
 
     @literature_secondary.setter
     def literature_secondary(self, value: Optional[str | List[str]] = []):
-        self._literature_secondary = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else ([value] if isinstance(value, str) else value)
-        )
+        self._literature_secondary = get_str_list(value)
 
     @property
     def material(self):
@@ -623,7 +584,7 @@ class Charter(XmlAssembler):
 
     @material.setter
     def material(self, value: Optional[str] = None):
-        self._material = value if isinstance(value, str) and len(value) else None
+        self._material = get_str(value)
 
     @property
     def notarial_authentication(self):
@@ -631,7 +592,7 @@ class Charter(XmlAssembler):
 
     @notarial_authentication.setter
     def notarial_authentication(self, value: Optional[str | etree._Element] = None):
-        self._notarial_authentication = validate_element(value, "notariusDesc")
+        self._notarial_authentication = get_str_or_element(value, "notariusDesc")
 
     @property
     def recipient(self):
@@ -643,7 +604,7 @@ class Charter(XmlAssembler):
             raise ValueError(
                 "XML element content for both recipient and abstract is not allowed, please join the recipient in the XML abstract yourself"
             )
-        self._recipient = validate_element(value, "recipient")
+        self._recipient = get_str_or_element(value, "recipient")
 
     @property
     def seals(self):
@@ -657,7 +618,7 @@ class Charter(XmlAssembler):
         if value is None or isinstance(value, str) and len(value) == 0:
             return None
         validated = (
-            validate_element(value, "sealDesc")
+            get_str_or_element(value, "sealDesc")
             if isinstance(value, etree._Element)
             else value
         )
@@ -672,7 +633,7 @@ class Charter(XmlAssembler):
 
     @tradition.setter
     def tradition(self, value: Optional[str] = None):
-        self._tradition = value if isinstance(value, str) and len(value) else None
+        self._tradition = get_str(value)
 
     @property
     def transcription(self):
@@ -680,7 +641,7 @@ class Charter(XmlAssembler):
 
     @transcription.setter
     def transcription(self, value: Optional[str | etree._Element] = None):
-        self._transcription = validate_element(value, "tenor")
+        self._transcription = get_str_or_element(value, "tenor")
 
     @property
     def transcription_sources(self):
@@ -688,11 +649,7 @@ class Charter(XmlAssembler):
 
     @transcription_sources.setter
     def transcription_sources(self, value: Optional[str | List[str]] = []):
-        self._transcription_sources = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else ([value] if isinstance(value, str) else value)
-        )
+        self._transcription_sources = get_str_list(value)
 
     @property
     def witnesses(self):
@@ -700,7 +657,7 @@ class Charter(XmlAssembler):
 
     @witnesses.setter
     def witnesses(self, value: Optional[List[str | etree._Element]] = []):
-        self._witnesses = [validate_element(item, "persName") for item in value] if isinstance(value, List) else []  # type: ignore
+        self._witnesses = get_str_or_element_list(value, "persName")
 
     # --------------------------------------------------------------------#
     #                        Private CEI creators                        #
