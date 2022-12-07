@@ -26,10 +26,10 @@ DateValue = Optional[Date | Tuple[Date, Date]]
 
 
 def to_mom_date_value(time: Time) -> str:
-    """Converts a astroyp.Time object to a mom-compatible date string.
+    """Converts an astropy.Time object to a mom-compatible date string.
 
     Args:
-        time (Time): A astropy.Time object
+        time (Time): An astropy.Time object
 
     Returns:
         A date string compatible with mom-ca.
