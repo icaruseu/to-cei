@@ -39,15 +39,18 @@ class CharterGroup(XmlAssembler):
             raise ValueError("Group name cannot be empty")
         self._name = value
 
-    def to_xml(self) -> etree._Element:
-        xml = CEI.cei(
-            CEI_SCHEMA_LOCATION_ATTRIBUTE,
+    def to_xml(self, add_schema_location: bool = False) -> etree._Element:
+        cei = CEI.cei(
             CEI.teiHeader(CEI.fileDesc(CEI.titleStmt(CEI.title(self.name)))),
             CEI.text(CEI.group(*[charter.to_xml() for charter in self.charters])),
         )
-        return xml
+        if add_schema_location:
+            cei.attrib.update(CEI_SCHEMA_LOCATION_ATTRIBUTE)
+        return cei
 
-    def to_file(self, folder: Optional[str] = None):
+    def to_file(self, folder: Optional[str] = None, add_schema_location: bool = False):
         return super(CharterGroup, self).to_file(
-            self.name.lower().replace(" ", "_") + ".cei.group", folder=folder
+            self.name.lower().replace(" ", "_") + ".cei.group",
+            folder=folder,
+            add_schema_location=add_schema_location,
         )

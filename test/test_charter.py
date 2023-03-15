@@ -8,7 +8,8 @@ from lxml import etree
 
 from pytest_helpers import xp, xps
 from to_cei.charter import NO_DATE_TEXT, NO_DATE_VALUE, Charter
-from to_cei.config import CEI, CHARTER_NSS
+from to_cei.config import (CEI, CHARTER_NSS, SCHEMA_LOCATION,
+                           SCHEMA_LOCATION_QNAME)
 from to_cei.helpers import ln
 from to_cei.seal import Seal
 from to_cei.validator import Validator
@@ -86,6 +87,15 @@ def test_writes_correct_file(tmp_path):
     assert out.is_file()
     written = etree.parse(str(out))
     Validator().validate_cei(written.getroot())
+
+
+def test_add_schema_location_is_respected():
+    charter = Charter("1A")
+    assert (
+        charter.to_xml(add_schema_location=True).get(SCHEMA_LOCATION_QNAME)
+        == SCHEMA_LOCATION
+    )
+    assert charter.to_xml(add_schema_location=False).get(SCHEMA_LOCATION_QNAME) == None
 
 
 # --------------------------------------------------------------------#

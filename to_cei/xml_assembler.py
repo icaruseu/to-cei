@@ -10,11 +10,11 @@ from to_cei.config import CEI_PREFIX
 
 class XmlAssembler(ABC):
     @abstractmethod
-    def to_xml(self) -> Optional[etree._Element]:
+    def to_xml(self, add_schema_location: bool = False) -> Optional[etree._Element]:
         pass
 
-    def to_string(self) -> str:
-        xml = self.to_xml()
+    def to_string(self, add_schema_location: bool = False) -> str:
+        xml = self.to_xml(add_schema_location)
         return (
             ""
             if xml is None
@@ -32,8 +32,9 @@ class XmlAssembler(ABC):
         name: str,
         folder: Optional[str | Path] = None,
         inclusive_ns_prefixes: List[str] = [],
+        add_schema_location: bool = False,
     ):
-        xml = self.to_xml()
+        xml = self.to_xml(add_schema_location)
         if xml is None:
             raise Exception("Failed to read xml")
         folder = (

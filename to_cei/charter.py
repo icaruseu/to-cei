@@ -967,14 +967,16 @@ class Charter(XmlAssembler):
             else CEI.tenor(self.transcription)
         )
 
-    def _create_cei_text(self) -> etree._Element:
-        return CEI.text(
-            CEI_SCHEMA_LOCATION_ATTRIBUTE,
+    def _create_cei_text(self, add_schema_location: bool = False) -> etree._Element:
+        text = CEI.text(
             self._create_cei_front(),
             self._create_cei_body(),
             self._create_cei_back(),
             type="charter",
         )
+        if add_schema_location:
+            text.attrib.update(CEI_SCHEMA_LOCATION_ATTRIBUTE)
+        return text
 
     def _create_cei_traditio_form(self) -> Optional[etree._Element]:
         return None if not self._tradition else CEI.traditioForm(self._tradition)
@@ -994,13 +996,17 @@ class Charter(XmlAssembler):
     #                           Public methods                           #
     # --------------------------------------------------------------------#
 
-    def to_xml(self) -> etree._Element:
-        return self._create_cei_text()
+    def to_xml(self, add_schema_location: bool = False) -> etree._Element:
+        return self._create_cei_text(add_schema_location)
 
-    def to_file(self, folder: Optional[str] = None):
+    def to_file(self, folder: Optional[str] = None, add_schema_location: bool = False):
         """Writes the xml representation of the charter to a file. The filename is generated from the normalized charter id.
 
         Args:
             folder (str): The folder to write the file to. If this is ommitted, the file is written to the place where the script is
         """
-        return super(Charter, self).to_file(self.id_norm + ".cei", folder=folder)
+        return super(Charter, self).to_file(
+            self.id_norm + ".cei",
+            folder=folder,
+            add_schema_location=add_schema_location,
+        )
