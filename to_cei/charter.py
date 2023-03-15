@@ -997,13 +997,22 @@ class Charter(XmlAssembler):
     # --------------------------------------------------------------------#
 
     def to_xml(self, add_schema_location: bool = False) -> etree._Element:
+        """Creates an xml representation of the charter.
+
+        Args:
+            add_schema_location: If True, the CEI schema location is added to the root element.
+
+        Returns:
+            An etree Element object representing the charter.
+        """
         return self._create_cei_text(add_schema_location)
 
     def to_file(self, folder: Optional[str] = None, add_schema_location: bool = False):
         """Writes the xml representation of the charter to a file. The filename is generated from the normalized charter id.
 
         Args:
-            folder (str): The folder to write the file to. If this is ommitted, the file is written to the place where the script is
+            folder (str): The folder to write the file to. If this is ommitted, the file is written to the place where the script is executed from.
+            add_schema_location (bool): If True, the CEI schema location is added to the root element. Defaults to False.
         """
         return super(Charter, self).to_file(
             self.id_norm + ".cei",

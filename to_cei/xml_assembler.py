@@ -14,6 +14,14 @@ class XmlAssembler(ABC):
         pass
 
     def to_string(self, add_schema_location: bool = False) -> str:
+        """Serializes the xml representation of the object to a string.
+
+        Args:
+            add_schema_location: If True, the CEI schema location is added to the root element.
+
+        Returns:
+            A string representation of the object.
+        """
         xml = self.to_xml(add_schema_location)
         return (
             ""
