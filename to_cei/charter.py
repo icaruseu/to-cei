@@ -6,7 +6,7 @@ from urllib.parse import quote
 from astropy.time import Time
 from lxml import etree
 
-from to_cei.config import CEI
+from to_cei.config import CEI, CEI_SCHEMA_LOCATION_ATTRIBUTE
 from to_cei.helpers import (get_str, get_str_list, get_str_or_element,
                             get_str_or_element_list, join)
 from to_cei.seal import Seal
@@ -967,13 +967,16 @@ class Charter(XmlAssembler):
             else CEI.tenor(self.transcription)
         )
 
-    def _create_cei_text(self) -> etree._Element:
-        return CEI.text(
+    def _create_cei_text(self, add_schema_location: bool = False) -> etree._Element:
+        text = CEI.text(
             self._create_cei_front(),
             self._create_cei_body(),
             self._create_cei_back(),
             type="charter",
         )
+        if add_schema_location:
+            text.attrib.update(CEI_SCHEMA_LOCATION_ATTRIBUTE)
+        return text
 
     def _create_cei_traditio_form(self) -> Optional[etree._Element]:
         return None if not self._tradition else CEI.traditioForm(self._tradition)
@@ -993,13 +996,26 @@ class Charter(XmlAssembler):
     #                           Public methods                           #
     # --------------------------------------------------------------------#
 
-    def to_xml(self) -> etree._Element:
-        return self._create_cei_text()
+    def to_xml(self, add_schema_location: bool = False) -> etree._Element:
+        """Creates an xml representation of the charter.
 
-    def to_file(self, folder: Optional[str] = None):
+        Args:
+            add_schema_location: If True, the CEI schema location is added to the root element.
+
+        Returns:
+            An etree Element object representing the charter.
+        """
+        return self._create_cei_text(add_schema_location)
+
+    def to_file(self, folder: Optional[str] = None, add_schema_location: bool = False):
         """Writes the xml representation of the charter to a file. The filename is generated from the normalized charter id.
 
         Args:
-            folder (str): The folder to write the file to. If this is ommitted, the file is written to the place where the script is
+            folder (str): The folder to write the file to. If this is ommitted, the file is written to the place where the script is executed from.
+            add_schema_location (bool): If True, the CEI schema location is added to the root element. Defaults to False.
         """
-        return super(Charter, self).to_file(self.id_norm + ".cei", folder=folder)
+        return super(Charter, self).to_file(
+            self.id_norm + ".cei",
+            folder=folder,
+            add_schema_location=add_schema_location,
+        )

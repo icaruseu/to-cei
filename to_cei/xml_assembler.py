@@ -10,15 +10,29 @@ from to_cei.config import CEI_PREFIX
 
 class XmlAssembler(ABC):
     @abstractmethod
-    def to_xml(self) -> Optional[etree._Element]:
+    def to_xml(self, add_schema_location: bool = False) -> Optional[etree._Element]:
         pass
 
-    def to_string(self) -> str:
-        xml = self.to_xml()
+    def to_string(self, add_schema_location: bool = False) -> str:
+        """Serializes the xml representation of the object to a string.
+
+        Args:
+            add_schema_location: If True, the CEI schema location is added to the root element.
+
+        Returns:
+            A string representation of the object.
+        """
+        xml = self.to_xml(add_schema_location)
         return (
             ""
             if xml is None
-            else str(etree.tostring(xml, encoding="unicode", pretty_print=True))
+            else str(
+                etree.tostring(
+                    xml,
+                    encoding="unicode",
+                    pretty_print=True,
+                )
+            )
         )
 
     def to_file(
@@ -26,8 +40,9 @@ class XmlAssembler(ABC):
         name: str,
         folder: Optional[str | Path] = None,
         inclusive_ns_prefixes: List[str] = [],
+        add_schema_location: bool = False,
     ):
-        xml = self.to_xml()
+        xml = self.to_xml(add_schema_location)
         if xml is None:
             raise Exception("Failed to read xml")
         folder = (
@@ -45,4 +60,6 @@ class XmlAssembler(ABC):
             encoding="UTF-8",
             pretty_print=True,
             inclusive_ns_prefixes=[CEI_PREFIX] + inclusive_ns_prefixes,
+            xml_declaration=True,
+            standalone=False,
         )
