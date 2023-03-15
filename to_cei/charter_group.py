@@ -3,7 +3,7 @@ from typing import List, Optional
 from lxml import etree
 
 from to_cei.charter import Charter
-from to_cei.config import CEI
+from to_cei.config import CEI, CEI_SCHEMA_LOCATION_ATTRIBUTE
 from to_cei.xml_assembler import XmlAssembler
 
 
@@ -41,6 +41,7 @@ class CharterGroup(XmlAssembler):
 
     def to_xml(self) -> etree._Element:
         xml = CEI.cei(
+            CEI_SCHEMA_LOCATION_ATTRIBUTE,
             CEI.teiHeader(CEI.fileDesc(CEI.titleStmt(CEI.title(self.name)))),
             CEI.text(CEI.group(*[charter.to_xml() for charter in self.charters])),
         )

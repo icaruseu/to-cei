@@ -18,7 +18,13 @@ class XmlAssembler(ABC):
         return (
             ""
             if xml is None
-            else str(etree.tostring(xml, encoding="unicode", pretty_print=True))
+            else str(
+                etree.tostring(
+                    xml,
+                    encoding="unicode",
+                    pretty_print=True,
+                )
+            )
         )
 
     def to_file(
@@ -45,4 +51,6 @@ class XmlAssembler(ABC):
             encoding="UTF-8",
             pretty_print=True,
             inclusive_ns_prefixes=[CEI_PREFIX] + inclusive_ns_prefixes,
+            xml_declaration=True,
+            standalone=False,
         )

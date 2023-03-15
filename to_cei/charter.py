@@ -6,7 +6,7 @@ from urllib.parse import quote
 from astropy.time import Time
 from lxml import etree
 
-from to_cei.config import CEI
+from to_cei.config import CEI, CEI_SCHEMA_LOCATION_ATTRIBUTE
 from to_cei.helpers import (get_str, get_str_list, get_str_or_element,
                             get_str_or_element_list, join)
 from to_cei.seal import Seal
@@ -969,6 +969,7 @@ class Charter(XmlAssembler):
 
     def _create_cei_text(self) -> etree._Element:
         return CEI.text(
+            CEI_SCHEMA_LOCATION_ATTRIBUTE,
             self._create_cei_front(),
             self._create_cei_body(),
             self._create_cei_back(),

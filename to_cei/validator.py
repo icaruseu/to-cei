@@ -8,7 +8,7 @@ from to_cei import config
 
 
 class Schema(str, Enum):
-    CEI = "http://www.monasterium.net/NS/cei"
+    CEI = config.CEI_NS
 
 
 class Validator:
