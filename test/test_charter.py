@@ -355,6 +355,42 @@ def test_has_correct_date_with_99999999():
     assert date_xml.get("value") == NO_DATE_VALUE
 
 
+def test_has_correct_date_with_99_as_month():
+    charter = Charter(id_text="1", date_value="14009905")
+    assert charter.date_value == (
+        Time("1400-01-01", format="isot", scale="ut1").ymdhms,
+        Time("1400-12-31", format="isot", scale="ut1").ymdhms,
+    )
+    date_xml = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:dateRange")
+    assert date_xml.text == "+01400-01-01 - +01400-12-31"
+    assert date_xml.get("from") == "14000101"
+    assert date_xml.get("to") == "14001231"
+
+
+def test_has_correct_date_with_99_as_day():
+    charter = Charter(id_text="1", date_value="14000299")
+    assert charter.date_value == (
+        Time("1400-02-01", format="isot", scale="ut1").ymdhms,
+        Time("1400-02-28", format="isot", scale="ut1").ymdhms,
+    )
+    date_xml = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:dateRange")
+    assert date_xml.text == "+01400-02-01 - +01400-02-28"
+    assert date_xml.get("from") == "14000201"
+    assert date_xml.get("to") == "14000228"
+
+
+def test_has_correct_leap_year_date_with_99_as_day():
+    charter = Charter(id_text="1", date_value="14040299")
+    assert charter.date_value == (
+        Time("1404-02-01", format="isot", scale="ut1"),
+        Time("1404-02-29", format="isot", scale="ut1"),
+    )
+    date_xml = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:issued/cei:dateRange")
+    assert date_xml.text == "+01404-02-01 - +01404-02-29"
+    assert date_xml.get("from") == "14040201"
+    assert date_xml.get("to") == "14040229"
+
+
 def test_has_correct_date_range_with_datetime():
     charter = Charter(
         id_text="1",

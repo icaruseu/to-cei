@@ -1,3 +1,4 @@
+import calendar
 import re
 from datetime import datetime
 from typing import List, Optional, Tuple
@@ -44,7 +45,7 @@ def to_mom_date_value(time: Time) -> str:
     )
 
 
-def mom_date_to_time(value: str) -> Time:
+def mom_date_to_time(value: str) -> Time | Tuple[Time, Time]:
     """Converts a mom-compatible date string into an astropy.Time object if possible.
 
     Args:
@@ -69,11 +70,59 @@ def mom_date_to_time(value: str) -> Time:
     day = match.group("day")
     if not isinstance(day, str):
         raise ValueError("Invalid day in mom date value: {}".format(day))
+    if month == "99":
+        return (
+            Time(
+                {"year": int(year), "month": 1, "day": 1},
+                format="ymdhms",
+                scale="ut1",
+            ),
+            Time(
+                {
+                    "year": int(year),
+                    "month": 12,
+                    "day": 31,
+                },
+                format="ymdhms",
+                scale="ut1",
+            ),
+        )
+    if day == "99":
+        return (
+            Time(
+                {"year": int(year), "month": int(month), "day": 1},
+                format="ymdhms",
+                scale="ut1",
+            ),
+            Time(
+                {
+                    "year": int(year),
+                    "month": int(month),
+                    "day": calendar.monthrange(int(year), int(month))[1],
+                },
+                format="ymdhms",
+                scale="ut1",
+            ),
+        )
     return Time(
         {"year": int(year), "month": int(month), "day": int(day)},
         format="ymdhms",
         scale="ut1",
     )
+
+
+def extract_time(time: Time | Tuple[Time, Time]) -> Time:
+    """Extract time from date
+    Args:
+    time (Time | Tuple[Time, Time])
+
+    Returns:
+        The first date if a tuple is provided, the date if a date is provided.
+    """
+    if isinstance(time, Tuple):
+        return time[0]
+    else:
+        return time
 
 
 def string_to_time(value: str | Tuple[str, str]) -> Time | Tuple[Time, Time]:
@@ -103,7 +152,15 @@ def string_to_time(value: str | Tuple[str, str]) -> Time | Tuple[Time, Time]:
     # Direct conversion not possible, try to convert mom date strings
     except Exception:
         if isinstance(value, Tuple):
-            return (mom_date_to_time(value[0]), mom_date_to_time(value[1]))
+            try:
+                return (
+                    extract_time(mom_date_to_time(value[0])),
+                    extract_time(mom_date_to_time(value[1])),
+                )
+            except Exception:
+                raise ValueError(
+                    "Failed to transform mom string to Time: '{}'".format(value)
+                )
         else:
             return mom_date_to_time(value)
 
@@ -198,9 +255,9 @@ class Charter(XmlAssembler):
             chancellary_remarks: Chancellary remarks as a single text or list of texts.
             comments: Diplomatic commentary as text or list of texts.
             condition: A description of the charter's condition in text form.
-            date: The date the charter was issued at either as text to use when converting to CEI or a complete cei:date or cei:dateRange etree._Element. If the date is given as an XML element, date_value needs to remain emptyself. Missing values will be constructed as having a date of "No date" in the XML.
+            date: The date the charter was issued at either as text to use when converting to CEI or a complete cei:date or cei:dateRange etree._Element. If the date is given as an XML element, date_value needs to remain empty. Missing values will be constructed as having a date of "No date" in the XML.
             date_quote: The charter's date in the original text either as text or a complete cel:quoteOriginaldatierung etree._Element object.
-            date_value: The actual date value in case the value in date is just a text and not an XML element. Can bei either an ISO date string, a MOM-compatible string, a python datetime object (can only be between years 1 and 9999) or an astropy Time object - or a tuple with two such values. If a single value is given, it is interpreted as an exact value, otherwise the two values will be used as from/to attributes of a cei:dateRange object. Missing values will be added to the xml as @value="99999999" to conform with the MOM data practices. When a date_value is added and date is an XML element, an exception is raised.
+            date_value: The actual date value in case the value in date is just a text and not an XML element. Can bei either an ISO date string, a MOM-compatible string, a python datetime object (can only be between years 1 and 9999) or an astropy Time object - or a tuple with two such values. If a single value is given, it is interpreted as an exact value, otherwise the two values will be used as from/to attributes of a cei:dateRange object. Missing values will be added to the xml as @value="99999999" to conform with the MOM data practices. When a date_value is added and date is an XML element, an exception is raised. Values with "99" for month or date will be converted to full year or month date ranges. For months "99" any day value after will be ignored and assumed to be unclear. This means, month "99" will always mean the whole given year.
             dimensions: The description of the physical dimensions of the charter as text.
             external_link: A link to an external representation of the charter as text.
             footnotes: Footnotes as text or list of texts.
