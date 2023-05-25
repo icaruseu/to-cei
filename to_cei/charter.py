@@ -188,7 +188,7 @@ class Charter(XmlAssembler):
     _index_persons: List[str | etree._Element] = []
     _index_places: List[str | etree._Element] = []
     _issued_place: Optional[str | etree._Element] = None
-    _issuer: Optional[str | etree._Element] = None
+    _issuers: Optional[str | etree._Element | List[str] | List[etree._Element]] = None
     _language: Optional[str] = None
     _literature: List[str] = []
     _literature_abstracts: List[str] = []
@@ -228,7 +228,9 @@ class Charter(XmlAssembler):
         index_persons: Optional[List[str | etree._Element]] = [],
         index_places: Optional[List[str | etree._Element]] = [],
         issued_place: Optional[str | etree._Element] = None,
-        issuer: Optional[str | etree._Element] = None,
+        issuers: Optional[
+            str | etree._Element | List[str] | List[etree._Element]
+        ] = None,
         language: Optional[str] = None,
         literature: Optional[str | List[str]] = [],
         literature_abstracts: Optional[str | List[str]] = [],
@@ -270,7 +272,7 @@ class Charter(XmlAssembler):
             index_persons: A list of persons as texts or cei:persName etree._Element objects to be included in the index.
             index_places: A list of places as texts or cei:placeName etree._Element objects to be included in the index.
             issued_place: The place the charter has been issued at either as text or a complete cei:placeName etree._Element.
-            issuer: The issuer of the charter either as text or a complete cei:issuer etree._Element.
+            issuers: The charters' issuers, as either a single or list of texts or complete cei:issuer etree._Element objects.
             language: The language of the charter as text.
             literature: A single text or list of texts descibing unspecified literature for the charter.
             literature_abstracts: A single text or list of texts descibing abstracts of the charter.
@@ -314,7 +316,7 @@ class Charter(XmlAssembler):
         self.index_persons = index_persons
         self.index_places = index_places
         self.issued_place = issued_place
-        self.issuer = issuer
+        self.issuers = issuers
         self.language = language
         self.literature = literature
         self.literature_abstracts = literature_abstracts
@@ -340,9 +342,9 @@ class Charter(XmlAssembler):
 
     @abstract.setter
     def abstract(self, value: Optional[str | etree._Element] = None):
-        if self.issuer is not None and isinstance(self.issuer, etree._Element):
+        if self.issuers is not None and isinstance(value, etree._Element):
             raise ValueError(
-                "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
+                "If abstract is an XML element, no issuer data is allowed, please join the abstract and issuer XML content yourself."
             )
         self._abstract = get_str_or_element(value, "abstract")
 
@@ -576,16 +578,26 @@ class Charter(XmlAssembler):
         self._issued_place = get_str_or_element(value, "placeName")
 
     @property
-    def issuer(self):
-        return self._issuer
+    def issuers(self):
+        return self._issuers
 
-    @issuer.setter
-    def issuer(self, value: Optional[str | etree._Element] = None):
-        if value is not None and isinstance(self.abstract, etree._Element):
+    @issuers.setter
+    def issuers(
+        self,
+        value: Optional[str | etree._Element | List[str] | List[etree._Element]] = None,
+    ):
+        if value is None:
+            return None
+        elif self.abstract is not None and isinstance(self.abstract, etree._Element):
             raise ValueError(
                 "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
             )
-        self._issuer = get_str_or_element(value, "issuer")
+        elif isinstance(value, etree._Element):
+            get_str_or_element(value, "issuer")
+        elif isinstance(value, List):
+            for item in value:
+                get_str_or_element(item, "issuer")
+        self._issuers = value
 
     @property
     def language(self):
@@ -721,7 +733,7 @@ class Charter(XmlAssembler):
     # --------------------------------------------------------------------#
 
     def _create_cei_abstract(self) -> Optional[etree._Element]:
-        children = join(self._create_cei_recipient(), self._create_cei_issuer())
+        children = join(self._create_cei_recipient(), *self._create_cei_issuers())
         return (
             CEI.abstract(self.abstract, *children)
             if isinstance(self.abstract, str)
@@ -850,14 +862,18 @@ class Charter(XmlAssembler):
         )
         return CEI.issued(*children) if len(children) else None
 
-    def _create_cei_issuer(self) -> Optional[etree._Element]:
-        return (
-            None
-            if self.issuer is None
-            else (
-                CEI.issuer(self.issuer) if isinstance(self.issuer, str) else self.issuer
-            )
-        )
+    def _create_cei_issuers(self) -> List[etree._Element]:
+        if self.issuers is None:
+            return []
+        elif isinstance(self.issuers, str):
+            return [CEI.issuer(self.issuers)]
+        elif isinstance(self.issuers, List):
+            return [
+                CEI.issuer(issuer) if isinstance(issuer, str) else issuer
+                for issuer in self.issuers
+            ]
+        else:
+            return [self.issuers]
 
     def _create_cei_lang_mom(self) -> Optional[etree._Element]:
         return None if self.language is None else CEI.lang_MOM(self.language)

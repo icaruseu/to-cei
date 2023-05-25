@@ -55,7 +55,7 @@ def test_is_valid_charter():
         ],
         index_places=["Wien", CEI.placeName("Wiener Neustadt")],
         issued_place="Wiener Neustadt",
-        issuer="Konrad von Lintz",
+        issuers="Konrad von Lintz",
         language="Deutsch",
         material="Pergament",
         literature="HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103",
@@ -955,7 +955,7 @@ def test_raises_exception_for_incorrect_xml_issued_place():
 
 
 # --------------------------------------------------------------------#
-#                           Charter issuer                           #
+#                           Charter issuers                          #
 # --------------------------------------------------------------------#
 
 
@@ -964,20 +964,24 @@ def test_has_correct_abstract_with_text_issuer():
         "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
     )
     issuer = "Konrad von Lintz"
-    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
-    assert isinstance(charter.issuer, str)
-    assert charter.issuer == issuer
+    charter = Charter(id_text="1", abstract=abstract, issuers=issuer)
+    assert isinstance(charter.issuers, str)
+    assert charter.issuers == issuer
     issuer_xml = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
     assert issuer_xml.text == issuer
 
 
-def test_has_correct_abstract_with_empty_issuer():
+def test_has_correct_abstract_with_text_list_issuer():
     abstract = (
-        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+        "Konrad von Lintz und Thomas von Gmunden, beurkunden den vorstehenden Vertrag."
     )
-    issuer = ""
-    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
-    assert charter.issuer == None
+    issuers = ["Konrad von Lintz", "Thomas von Gmunden"]
+    charter = Charter(id_text="1", abstract=abstract, issuers=issuers)
+    assert isinstance(charter.issuers, List)
+    assert charter.issuers == issuers
+    issuer_xml = xp(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
+    assert issuer_xml[0].text == issuers[0]
+    assert issuer_xml[1].text == issuers[1]
 
 
 def test_has_correct_abstract_with_xml_issuer():
@@ -986,22 +990,44 @@ def test_has_correct_abstract_with_xml_issuer():
     )
     issuer = CEI.issuer("Konrad von Lintz")
     assert isinstance(issuer, etree._Element)
-    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
-    assert isinstance(charter.issuer, etree._Element)
-    assert charter.issuer.text == issuer.text
+    charter = Charter(id_text="1", abstract=abstract, issuers=issuer)
+    assert isinstance(charter.issuers, etree._Element)
+    assert charter.issuers.text == issuer.text
     issuer_xml = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
     assert issuer_xml.text == issuer.text
+
+
+def test_has_correct_abstract_with_xml_issuer_list():
+    abstract = (
+        "Konrad von Lintz und Thomas von Gmunden, beurkunden den vorstehenden Vertrag."
+    )
+    issuers = [CEI.issuer("Konrad von Lintz"), CEI.issuer("Thomas von Gmunden")]
+    charter = Charter(id_text="1", abstract=abstract, issuers=issuers)
+    assert isinstance(charter.issuers, List)
+    assert isinstance(charter.issuers[0], etree._Element)
+    assert isinstance(charter.issuers[1], etree._Element)
+    assert charter.issuers[0].text == issuers[0].text
+    assert charter.issuers[1].text == issuers[1].text
+    issuer_xml = xp(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
+    assert issuer_xml[0].text == issuers[0].text
+    assert issuer_xml[1].text == issuers[1].text
 
 
 def test_raises_exception_for_incorrect_xml_issuer():
     incorrect_element = CEI.persName("A person")
     with pytest.raises(ValueError):
-        Charter(id_text="1", issuer=incorrect_element)
+        Charter(id_text="1", issuers=incorrect_element)
+
+
+def test_raises_exception_for_incorrect_xml_issuer_list():
+    incorrect_elements = [CEI.persName("A person"), CEI.persName("Another person")]
+    with pytest.raises(ValueError):
+        Charter(id_text="1", issuers=incorrect_elements)
 
 
 def test_raises_exception_for_xml_abstract_with_issuer():
     with pytest.raises(ValueError):
-        Charter(id_text="1", abstract=CEI.abstract("An abstract"), issuer="An issuer")
+        Charter(id_text="1", abstract=CEI.abstract("An abstract"), issuers="An issuer")
 
 
 # --------------------------------------------------------------------#
