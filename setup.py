@@ -11,7 +11,7 @@ with open(path.join(pwd, "README.md"), encoding="utf-8") as f:
 # This call to setup() does all the work
 setup(
     name="to_cei",
-    version="0.2.0",
+    version="0.2.1",
     description="to-CEI",
     long_description=long_description,
     long_description_content_type="text/markdown",

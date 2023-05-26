@@ -971,6 +971,18 @@ def test_has_correct_abstract_with_text_issuer():
     assert issuer_xml.text == issuer
 
 
+def test_has_correct_abstract_with_text_single_issuer():
+    abstract = (
+        "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
+    )
+    issuer = "Konrad von Lintz"
+    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
+    assert isinstance(charter.issuers, str)
+    assert charter.issuers == issuer
+    issuer_xml = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
+    assert issuer_xml.text == issuer
+
+
 def test_has_correct_abstract_with_text_list_issuer():
     abstract = (
         "Konrad von Lintz und Thomas von Gmunden, beurkunden den vorstehenden Vertrag."

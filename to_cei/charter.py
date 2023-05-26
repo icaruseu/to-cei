@@ -1,5 +1,6 @@
 import calendar
 import re
+import warnings
 from datetime import datetime
 from typing import List, Optional, Tuple
 from urllib.parse import quote
@@ -228,6 +229,7 @@ class Charter(XmlAssembler):
         index_persons: Optional[List[str | etree._Element]] = [],
         index_places: Optional[List[str | etree._Element]] = [],
         issued_place: Optional[str | etree._Element] = None,
+        issuer: Optional[str | etree._Element] = None,
         issuers: Optional[
             str | etree._Element | List[str] | List[etree._Element]
         ] = None,
@@ -272,6 +274,7 @@ class Charter(XmlAssembler):
             index_persons: A list of persons as texts or cei:persName etree._Element objects to be included in the index.
             index_places: A list of places as texts or cei:placeName etree._Element objects to be included in the index.
             issued_place: The place the charter has been issued at either as text or a complete cei:placeName etree._Element.
+            issuer: The charters single issuer either as a text or a etree._Element object. DEPRECATED - This parameter will be removed in future versions, please use the 'issuers' parameter, it accepts the same values as well as lists.
             issuers: The charters' issuers, as either a single or list of texts or complete cei:issuer etree._Element objects.
             language: The language of the charter as text.
             literature: A single text or list of texts descibing unspecified literature for the charter.
@@ -317,6 +320,11 @@ class Charter(XmlAssembler):
         self.index_places = index_places
         self.issued_place = issued_place
         self.issuers = issuers
+        if issuer is not None:
+            warnings.warn(
+                "The 'issuer' parameter is deprecated in favor of 'issuers' which can take the same value but supports multiple issuers. Setting issuer will erase values set with issuers for legacy support reasons."
+            )
+            self.issuers = issuer
         self.language = language
         self.literature = literature
         self.literature_abstracts = literature_abstracts
