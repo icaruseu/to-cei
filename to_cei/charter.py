@@ -752,8 +752,17 @@ class Charter(XmlAssembler):
         return None if not self.archive else CEI.arch(self.archive)
 
     def _create_cei_arch_identifier(self) -> Optional[etree._Element]:
-        children = join(self._create_cei_arch(), self._create_cei_ref())
+        children = join(
+            self._create_cei_arch(),
+            self._create_cei_ref(),
+            self._create_cei_alt_identifier(),
+        )
         return CEI.archIdentifier(*children) if len(children) else None
+
+    def _create_cei_alt_identifier(self) -> Optional[etree._Element]:
+        return (
+            None if not self.id_old else CEI.altIdentifier(self.id_old, {"type": "old"})
+        )
 
     def _create_cei_auth(self) -> Optional[etree._Element]:
         children = join(self._create_cei_notarius_desc(), self._create_cei_seal_desc())
@@ -860,8 +869,6 @@ class Charter(XmlAssembler):
 
     def _create_cei_idno(self) -> etree._Element:
         attributes = {"id": self.id_norm}
-        if self.id_old:
-            attributes["old"] = self.id_old
         return CEI.idno(self.id_text, **attributes)
 
     def _create_cei_issued(self) -> Optional[etree._Element]:

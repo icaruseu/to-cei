@@ -782,10 +782,12 @@ def test_has_correct_id_norm_for_empty_text():
 
 def test_has_correct_id_old():
     id_old = "123456 α"
-    idno = xps(
-        Charter(id_text="1307 II 22", id_old=id_old), "/cei:text/cei:body/cei:idno"
+    altIdentifier = xps(
+        Charter(id_text="1307 II 22", id_old=id_old),
+        "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:archIdentifier/cei:altIdentifier",
     )
-    assert idno.get("old") == id_old
+    assert altIdentifier.text == id_old
+    assert altIdentifier.get("type") == "old"
 
 
 def test_has_no_id_old_for_empty_text():

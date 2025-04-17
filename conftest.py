@@ -17,7 +17,7 @@ def valid_cei():
 	   </cei:sourceDesc>
 	</cei:front>
 	<cei:body>
-	   <cei:idno id="1307_II_22.1" old="217593">1307 II 22</cei:idno>
+	   <cei:idno id="1307_II_22.1">1307 II 22</cei:idno>
 	   <cei:chDesc>
 		  <cei:abstract>Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.</cei:abstract>
 		  <cei:issued>
@@ -31,6 +31,7 @@ def valid_cei():
 			 </cei:figure>
 			 <cei:archIdentifier>
 				<cei:arch>Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)</cei:arch>
+                <cei:altIdentifier type="old">217593</cei:altIdentifier>
 			 </cei:archIdentifier>
 			 <cei:physicalDesc>
 				<cei:material>Pergament</cei:material>
