@@ -33,6 +33,7 @@ def test_is_valid_charter():
         abstract="Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag mit Heinrich, des Praitenvelders Schreiber.",
         abstract_sources=["HAUSWIRTH, Schotten (=FRA II/18, 1859) S. 123, Nr. 103"],
         archive="Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)",
+        archive_location="Wien",
         chancellary_remarks=[
             "commissio domini imperatoris in consilio",
             "Jüngerer Dorsualvermerk mit Regest",
@@ -44,6 +45,7 @@ def test_is_valid_charter():
         date_value=Time("1307-02-22", format="isot", scale="ut1"),
         dimensions="20x20cm",
         external_link="https://example.com/charters/1",
+        fond="Urkunden",
         footnotes=["Siehe RI #1234", "Abweichend von Nr. 15"],
         graphic_urls=["K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg"],
         index=["Arenga", CEI.index("Insulare Minuskel")],
@@ -161,6 +163,26 @@ def test_has_no_archive_for_empty_text():
     archive = ""
     charter = Charter(id_text="1", archive=archive)
     assert charter.archive == None
+
+
+# --------------------------------------------------------------------#
+#                    Charter archive settlement                      #
+# --------------------------------------------------------------------#
+
+def test_has_correct_charter_archive_settlement():
+    archive_settlement = "Vienna"
+    charter = Charter(id_text="1", archive_location=archive_settlement)
+    assert charter.archive_location == archive_settlement
+    archive_settlement_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:archIdentifier/cei:settlement",
+    )
+    assert archive_settlement_xml.text == archive_settlement
+
+def test_has_no_archive_settlement_for_empty_text():
+    archive_settlement = ""
+    charter = Charter(id_text="1", archive_location=archive_settlement)
+    assert charter.archive_location == None
 
 
 # --------------------------------------------------------------------#
@@ -745,6 +767,26 @@ def test_has_no_footnotes_for_empty_text():
     footnotes = ""
     charter = Charter(id_text="1", footnotes=footnotes)
     assert len(charter._footnotes) == 0
+
+
+# --------------------------------------------------------------------#
+#                             Charter fond                           #
+# --------------------------------------------------------------------#
+
+def test_has_correct_fond():
+    fond = "Fond a"
+    charter = Charter(id_text="1", fond=fond)
+    assert charter.fond == fond
+    fond_xml = xps(
+        charter,
+        "/cei:text/cei:body/cei:chDesc/cei:witnessOrig/cei:archIdentifier/cei:archFond",
+    )
+    assert fond_xml.text == fond
+
+def test_has_no_fond_for_empty_text():
+    fond = ""
+    charter = Charter(id_text="1", fond=fond)
+    assert charter.fond == None
 
 
 # --------------------------------------------------------------------#

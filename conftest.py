@@ -30,7 +30,11 @@ def valid_cei():
 				<cei:graphic url="K.._MOM-Bilddateien._~Schottenjpgweb._~StAS__13070222-2.jpg">StAS__13070222-2.jpg</cei:graphic>
 			 </cei:figure>
 			 <cei:archIdentifier>
+                <cei:settlement>Wien</cei:settlement>
 				<cei:arch>Stiftsarchiv Schotten, Wien (http://www.schottenstift.at)</cei:arch>
+                <cei:archFond>Urkunden</cei:archFond>
+                <cei:idno>Urkunde 217593</cei:idno>
+                <cei:ref target="https://www.example.com/charters/217593">Urkunde in der Webseite der Bibliothek</cei:ref>
                 <cei:altIdentifier type="old">217593</cei:altIdentifier>
 			 </cei:archIdentifier>
 			 <cei:physicalDesc>

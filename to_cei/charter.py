@@ -170,6 +170,7 @@ class Charter(XmlAssembler):
     _abstract: Optional[str | etree._Element] = None
     _abstract_sources: List[str] = []
     _archive: Optional[str] = None
+    _archive_location: Optional[str] = None
     _chancellary_remarks: List[str] = []
     _comments: List[str] = []
     _condition: Optional[str] = None
@@ -178,6 +179,7 @@ class Charter(XmlAssembler):
     _date_value: Optional[Time | Tuple[Time, Time]] = None
     _dimensions: Optional[str] = None
     _external_link: Optional[str] = None
+    _fond: Optional[str] = None
     _footnotes: List[str] = []
     _graphic_urls: List[str] = []
     _id_norm: Optional[str] = None
@@ -211,6 +213,7 @@ class Charter(XmlAssembler):
         abstract: Optional[str | etree._Element] = None,
         abstract_sources: Optional[str | List[str]] = [],
         archive: Optional[str] = None,
+        archive_location: Optional[str] = None,
         chancellary_remarks: Optional[str | List[str]] = [],
         comments: Optional[str | List[str]] = [],
         condition: Optional[str] = None,
@@ -219,6 +222,7 @@ class Charter(XmlAssembler):
         date_value: Optional[DateValue] = None,
         dimensions: Optional[str] = None,
         external_link: Optional[str] = None,
+        fond: Optional[str] = None,
         footnotes: Optional[str | List[str]] = [],
         graphic_urls: Optional[str | List[str]] = [],
         id_norm: Optional[str] = None,
@@ -256,6 +260,7 @@ class Charter(XmlAssembler):
             abstract: The abstract either as a simple text or a complete cei:abstract etree._Element.
             abstract_sources: The bibliography source or sources for the abstract.
             archive: The name of the archive that owns the original charter.
+            archive_location: The city or other location of the archive that owns the original charter.
             chancellary_remarks: Chancellary remarks as a single text or list of texts.
             comments: Diplomatic commentary as text or list of texts.
             condition: A description of the charter's condition in text form.
@@ -264,6 +269,7 @@ class Charter(XmlAssembler):
             date_value: The actual date value in case the value in date is just a text and not an XML element. Can bei either an ISO date string, a MOM-compatible string, a python datetime object (can only be between years 1 and 9999) or an astropy Time object - or a tuple with two such values. If a single value is given, it is interpreted as an exact value, otherwise the two values will be used as from/to attributes of a cei:dateRange object. Missing values will be added to the xml as @value="99999999" to conform with the MOM data practices. When a date_value is added and date is an XML element, an exception is raised. Values with "99" for month or date will be converted to full year or month date ranges. For months "99" any day value after will be ignored and assumed to be unclear. This means, month "99" will always mean the whole given year.
             dimensions: The description of the physical dimensions of the charter as text.
             external_link: A link to an external representation of the charter as text.
+            fond: The archival fond the charter is part of.
             footnotes: Footnotes as text or list of texts.
             graphic_urls: A list of strings that represents the urls of various images representing the charter. Can bei either full urls or just the filenames of the image files, depending on the charter fond / collection settings.
             id_norm: A normalized id for the charter. It will be percent-encoded to ensure only valid characters are used. If it is ommitted, the normalized version of id_text will be used.
@@ -299,6 +305,7 @@ class Charter(XmlAssembler):
         self.abstract = abstract
         self.abstract_sources = abstract_sources
         self.archive = archive
+        self.archive_location = archive_location
         self.chancellary_remarks = chancellary_remarks
         self.comments = comments
         self.condition = condition
@@ -308,6 +315,7 @@ class Charter(XmlAssembler):
             self.date_value = date_value
         self.dimensions = dimensions
         self.external_link = external_link
+        self.fond = fond
         self.footnotes = footnotes
         self.graphic_urls = graphic_urls
         self.id_norm = id_norm
@@ -371,6 +379,14 @@ class Charter(XmlAssembler):
     @archive.setter
     def archive(self, value: Optional[str] = None):
         self._archive = get_str(value)
+
+    @property
+    def archive_location(self):
+        return self._archive_location
+    
+    @archive_location.setter
+    def archive_location(self, value: Optional[str] = None):
+        self._archive_location = get_str(value)
 
     @property
     def chancellary_remarks(self):
@@ -497,6 +513,14 @@ class Charter(XmlAssembler):
             )
         self._external_link = value
 
+    @property
+    def fond(self):
+        return self._fond
+    
+    @fond.setter
+    def fond(self, value: Optional[str] = None):
+        self._fond = get_str(value)
+    
     @property
     def footnotes(self):
         return self._footnotes
@@ -750,10 +774,19 @@ class Charter(XmlAssembler):
 
     def _create_cei_arch(self) -> Optional[etree._Element]:
         return None if not self.archive else CEI.arch(self.archive)
-
+    
+    def _create_cei_arch_fond(self) -> Optional[etree._Element]:
+        return None if not self.fond else CEI.archFond(self.fond)
+    
+    def _create_cei_settlement(self) -> Optional[etree._Element]:
+        return None if not self.archive_location else CEI.settlement(self.archive_location)
+    
     def _create_cei_arch_identifier(self) -> Optional[etree._Element]:
         children = join(
+            self._create_cei_settlement(),
             self._create_cei_arch(),
+            self._create_cei_arch_fond(),
+            self._create_cei_idno(),
             self._create_cei_ref(),
             self._create_cei_alt_identifier(),
         )
