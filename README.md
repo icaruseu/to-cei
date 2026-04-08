@@ -45,43 +45,119 @@ date" markers. `to_cei.dates.parse` handles all three: a `Time` for
 exact dates, a `(Time, Time)` range for partial ones, `None` for
 explicit no-date markers.
 
+### Many input forms, one output
+
+For any given exact date, the input forms below all parse to the same
+`Time`. Use whichever shape your source data already happens to be in
+— there is no preferred input format:
+
 ```python
 from to_cei import dates
 
-# Numeric / standard
-dates.parse("1457-03-15")               # ISO 8601         -> Time
-dates.parse("14570315")                 # MOM exact        -> Time
-dates.parse("14570399")                 # MOM unknown day  -> month range
-dates.parse("14579999")                 # MOM unknown month-> year range
-dates.parse("15.03.1457")               # German DMY       -> Time
-dates.parse("1457.03.15")               # YMD dotted       -> Time
-dates.parse("15/03/1457")               # slashed DMY      -> Time
+# Year 1457, March 15 — these all produce identical Time objects:
+dates.parse("1457-03-15")    # ISO 8601
+dates.parse("14570315")      # MOM (the schema's value-attribute form)
+dates.parse("1457.03.15")    # dotted YMD
+dates.parse("15.03.1457")    # German dotted DMY
+dates.parse("15/03/1457")    # slashed DMY
+```
 
-# Year-only and German archival hedging
-dates.parse("1457")                     # bare year        -> full year
-dates.parse("um 1457")                  # ca./circa/etwa   -> full year
-dates.parse("1457 oder 1458")           # either-or        -> 2-year span
-dates.parse("zwischen 1457 und 1460")   # between          -> 4-year span
-dates.parse("15. Jahrhundert")          # century          -> 1401-1500
-dates.parse("Anfang des 15. Jahrhunderts")  # century third
+A note on MOM: it's not really "one input format among many" — it's
+the **CEI schema's `@value` attribute format**, which the parser also
+accepts on input so existing CEI data round-trips cleanly. For human
+input prefer ISO or dotted; reach for MOM when you're piping data that
+came out of CEI in the first place.
+
+### Pre-1000 (3-digit) years
+
+The CEI schema's value-attribute form drops leading zeros for years
+under 1000 — year 769 is `"7690101"`, *not* `"07690101"`. The parser
+mirrors that exactly. Other formats handle it the natural way:
+
+```python
+# Year 769, January 1
+dates.parse("0769-01-01")    # ✓ ISO (leading zero is fine)
+dates.parse("0769.01.01")    # ✓ dotted YMD
+dates.parse("01.01.0769")    # ✓ German dotted DMY
+dates.parse("0769")          # ✓ bare year → full-year range
+dates.parse("769")           # ✓ bare year → full-year range
+dates.parse("7690101")       # ✓ MOM (schema form, no padding)
+dates.parse("07690101")      # ✗ rejected — not a valid MOM string
+```
+
+`to_cei.dates.to_mom_date_value` (used internally for serialization)
+always emits the unpadded schema form, so `Charter` round-trips
+correctly regardless of which input shape you started from.
+
+#### Years under 100
+
+The schema regex requires the year part to be **at least 3 characters**,
+so years below 100 must still be padded to three digits in MOM form.
+Year 12, December 11 is `"0121211"` — *not* `"121211"`. ISO and dotted
+formats accept either padded or unpadded years, but be careful with
+short unpadded variants: a string like `"12.12.11"` is parsed as
+**day 12, month 12, year 11** (the German DMY parser runs before the
+YMD one and 2-digit year components match it). For early dates, prefer
+fully-padded forms to remove the ambiguity:
+
+```python
+dates.parse("0012-12-11")    # ✓ year 12, Dec 11 (ISO, padded)
+dates.parse("0121211")       # ✓ year 12, Dec 11 (MOM, year padded)
+dates.parse("11.12.0012")    # ✓ year 12, Dec 11 (German DMY, padded)
+dates.parse("0012.12.11")    # ✓ year 12, Dec 11 (dotted YMD, padded)
+
+dates.parse("121211")        # ✗ rejected — MOM needs the 7-char form
+dates.parse("12.12.11")      # ⚠ year 11, Dec 12 (parsed as DMY)
+dates.parse("12-12-11")      # ⚠ year 11, Dec 12 (parsed as DMY)
+```
+
+In practice this only matters for dates earlier than AD 100 — well
+before any charter.
+
+### Partial dates and German archival expressions
+
+```python
+# MOM "unknown" sentinels — produce ranges
+dates.parse("14570399")      # unknown day  → full-month range
+dates.parse("14579999")      # unknown month → full-year range
+
+# Year-only → full year range
+dates.parse("1457")
+
+# German archival hedging
+dates.parse("um 1457")                       # ca./circa/etwa → full year
+dates.parse("1457 oder 1458")                # 2-year span
+dates.parse("zwischen 1457 und 1460")        # 4-year span
+dates.parse("15. Jahrhundert")               # 1401-01-01 … 1500-12-31
+dates.parse("Anfang des 15. Jahrhunderts")   # century third
 
 # Explicit range
 dates.parse(("1457-03-15", "1457-03-20"))
 ```
 
-### Recognised string formats (in priority order)
+### What gets returned
+
+| Form | Result |
+|---|---|
+| ISO, dotted/slashed, MOM exact, `datetime`, `Time` | single `Time` |
+| MOM with `99`-day or `99`-month, bare year, German fuzzy, explicit 2-tuple | `(Time, Time)` range |
+| no-date marker (`sine dato`, `s.d.`, `o.D.`, `n.d.`, `99999999`, empty string) | `None` |
+
+### Recognised string formats (priority order)
+
+`parse` tries each built-in below in order; the first match wins.
 
 | # | Format | Examples |
 |---|---|---|
-| 1 | **ISO 8601** | `"1457-03-15"` |
-| 2 | **MOM numeric** (`YYYYMMDD`) | `"14570315"`, `"14570399"`, `"14579999"` |
+| 1 | **ISO 8601** | `"1457-03-15"`, `"0769-01-01"` |
+| 2 | **MOM** (CEI `@value` form) | `"14570315"`, `"14570399"`, `"14579999"`, `"7690101"` |
 | 3 | **Dotted/slashed numeric** | `"15.03.1457"` (German DMY), `"1457.03.15"` (YMD), `"15/03/1457"`, `"15-03-1457"` |
-| 4 | **Bare year** | `"1457"` → full-year range |
+| 4 | **Bare year** | `"1457"`, `"769"` → full-year range |
 | 5 | **German fuzzy** | `"um/ca./circa/gegen/etwa 1457"`, `"1457 oder 1458"`, `"zwischen X und Y"`, `"15. Jahrhundert"`, `"15. Jh."`, `"Anfang/Mitte/Ende des 15. Jahrhunderts"` |
 
-If parsing fails, the exception lists every format that was tried with
-its rejection reason — so you can see at a glance whether your input
-just needs a small reformat or a new parser.
+On parse failure, the exception lists every format that was tried with
+its rejection reason — useful for spotting whether your input just
+needs a small reformat or a new parser.
 
 ### Plug in your own format
 

@@ -72,6 +72,10 @@ def is_no_date(value: str) -> bool:
 # "not my format". Both built-ins and user `extra_parsers` follow it.
 ConventionParser = Callable[[str], Union[Time, tuple[Time, Time]]]
 
+# Copied verbatim from the CEI schema's `normalizedDateValue` simple type.
+# This is the schema's `@value` attribute format, not a parser-author choice
+# — do not relax it. Note the year part has no leading-zero padding (year
+# 769 is "769", not "0769"), so pre-1000 years use a 7-character form.
 MOM_DATE_REGEX = re.compile(
     r"^(?P<year>-?[129]?[0-9][0-9][0-9])(?P<month>[019][0-9])(?P<day>[01239][0-9])$"
 )

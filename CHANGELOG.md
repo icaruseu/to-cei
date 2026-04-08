@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1]
+
+Documentation and test-coverage release. No code or behaviour changes
+to the runtime API.
+
+### Added
+- README "Dates" section rewritten with a "many input forms, one
+  output" equivalence example (year 1457 in five formats producing
+  identical `Time`s), a worked pre-1000 (3-digit year) example
+  showing which input shapes accept padded years and which don't, a
+  "what gets returned" reference table mapping each input shape to
+  `Time` / `(Time, Time)` / `None`, and an explicit reframing of MOM
+  as "the CEI schema's `@value` attribute format, accepted on input
+  for round-tripping" rather than just one input format among many.
+- Source comment on `to_cei.dates.MOM_DATE_REGEX` noting that it is
+  copied verbatim from the CEI schema's `normalizedDateValue` simple
+  type and must not be relaxed, plus the year-padding behaviour
+  (3-digit years are unpadded — year 769 is `"7690101"`, not
+  `"07690101"`).
+- 70 new schema-edge tests in `test/test_dates.py`, taking the total
+  from the 0.4.0 baseline of **226 to 296**: pre-1000 (3-digit) years
+  across every input format, the year-under-100 padding requirements
+  and 2-digit-year DMY/YMD ambiguity (documentation-by-test for the
+  README's "Years under 100" subsection),
+  the un-representable MOM 3000–8999 range, BCE/negative years, year
+  boundaries (100, 999, 1000, 1999, 2000, 2999, 9000, 9999), leap-year
+  February-29 handling, the schema-regex day-range nuances (40–89
+  forbidden), the no-date sentinel, the astropy/ERFA `-9999` lower
+  bound, and a parametrized round-trip property test asserting
+  `parse(to_mom_date_value(t)) == t` over a representative range of
+  years.
+- Three new `justfile` recipes — `build` (clean + sdist + wheel +
+  `twine check`), `publish-test` (TestPyPI), and `publish` (PyPI).
+  Both publish recipes depend on `build`, so a fresh clean build runs
+  automatically before any upload.
+
 ## [0.4.0]
 
 A correctness, ergonomics, and structural-cleanup release. Requires
