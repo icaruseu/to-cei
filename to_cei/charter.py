@@ -1,256 +1,126 @@
-import calendar
-import re
-import warnings
 from datetime import datetime
-from typing import List, Optional, Tuple
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 from astropy.time import Time
 from lxml import etree
 
+from to_cei._fields import CharterField
 from to_cei.config import CEI, CEI_SCHEMA_LOCATION_ATTRIBUTE
+from to_cei.dates import (NO_DATE_VALUE, parse as parse_date,
+                          to_mom_date_value)
 from to_cei.helpers import (get_str, get_str_list, get_str_or_element,
                             get_str_or_element_list, join)
 from to_cei.seal import Seal
 from to_cei.xml_assembler import XmlAssembler
 
-MOM_DATE_REGEX = re.compile(
-    r"^(?P<year>-?[129]?[0-9][0-9][0-9])(?P<month>[019][0-9])(?P<day>[01239][0-9])$"
-)
 NO_DATE_TEXT = "No date"
-NO_DATE_VALUE = "99999999"
-
-SIMPLE_URL_REGEX = re.compile(r"^https?://.{1,}\..{1,}$")
 
 Date = str | datetime | Time
 
-DateValue = Optional[Date | Tuple[Date, Date]]
+DateValue = Date | tuple[Date, Date] | None
 
 
-def to_mom_date_value(time: Time) -> str:
-    """Converts an astropy.Time object to a mom-compatible date string.
-
-    Args:
-        time (Time): An astropy.Time object
-
-    Returns:
-        A date string compatible with mom-ca.
-    """
-    year = time.ymdhms[0]
-    month = time.ymdhms[1]
-    day = time.ymdhms[2]
-    return "{year}{month}{day}".format(
-        year=str(year).zfill(3) if year >= 0 else "-" + str(year * -1).zfill(3),
-        month=str(month).zfill(2),
-        day=str(day).zfill(2),
-    )
+# Field normalizer factories used by the CharterField declarations.
+def _norm_str_or_element(*tags: str):
+    return lambda value: get_str_or_element(value, *tags)
 
 
-def mom_date_to_time(value: str) -> Time | Tuple[Time, Time]:
-    """Converts a mom-compatible date string into an astropy.Time object if possible.
-
-    Args:
-        value (str): A mom-compatible date string in the form of -?[129]?[0-9][0-9][0-9][019][0-9][01239][0-9]
-
-    Returns:
-        A astropy.Time object
-
-    Raises:
-        ValueError: If the provided value cannot be converted to a valid astropy.Time object
-
-    """
-    match = re.search(MOM_DATE_REGEX, value)
-    if match is None:
-        raise ValueError("Invalid mom date value provided: '{}'".format(value))
-    year = match.group("year")
-    if not isinstance(year, str):
-        raise ValueError("Invalid year in mom date value: {}".format(year))
-    month = match.group("month")
-    if not isinstance(month, str):
-        raise ValueError("Invalid month in mom date value: {}".format(month))
-    day = match.group("day")
-    if not isinstance(day, str):
-        raise ValueError("Invalid day in mom date value: {}".format(day))
-    if month == "99":
-        return (
-            Time(
-                {"year": int(year), "month": 1, "day": 1},
-                format="ymdhms",
-                scale="ut1",
-            ),
-            Time(
-                {
-                    "year": int(year),
-                    "month": 12,
-                    "day": 31,
-                },
-                format="ymdhms",
-                scale="ut1",
-            ),
-        )
-    if day == "99":
-        return (
-            Time(
-                {"year": int(year), "month": int(month), "day": 1},
-                format="ymdhms",
-                scale="ut1",
-            ),
-            Time(
-                {
-                    "year": int(year),
-                    "month": int(month),
-                    "day": calendar.monthrange(int(year), int(month))[1],
-                },
-                format="ymdhms",
-                scale="ut1",
-            ),
-        )
-    return Time(
-        {"year": int(year), "month": int(month), "day": int(day)},
-        format="ymdhms",
-        scale="ut1",
-    )
+def _norm_str_or_element_list(*tags: str):
+    return lambda value: get_str_or_element_list(value, *tags)
 
 
-def extract_time(time: Time | Tuple[Time, Time]) -> Time:
-    """Extract time from date
-    Args:
-    time (Time | Tuple[Time, Time])
-
-    Returns:
-        The first date if a tuple is provided, the date if a date is provided.
-    """
-    if isinstance(time, Tuple):
-        return time[0]
-    else:
-        return time
-
-
-def string_to_time(value: str | Tuple[str, str]) -> Time | Tuple[Time, Time]:
-    """Converts a single date string or a tuple of date strings to a matching single or tuple astropy.Time object.
-
-    Args:
-        value (str | Tuple[str, str]): A single or tuple of date strings. Can be either an iso-compatible or a mom-ca compatible date string.
-
-    Returns:
-        A single or tuple astropy.Time objectself.
-
-    Raises:
-        ValueError: If the date/s cannot be converted to astropy.Time objects.
-    """
-    if isinstance(value, Tuple) and len(value) != 2:
-        raise ValueError("Invalid date tuple provided: '{}'".format(value))
-    try:
-        # Try to directly convert from an iso date string
-        return (
-            Time(value, format="isot", scale="ut1")
-            if isinstance(value, str)
-            else (
-                Time(value[0], format="isot", scale="ut1"),
-                Time(value[1], format="isot", scale="ut1"),
-            )
-        )
-    # Direct conversion not possible, try to convert mom date strings
-    except Exception:
-        if isinstance(value, Tuple):
-            try:
-                return (
-                    extract_time(mom_date_to_time(value[0])),
-                    extract_time(mom_date_to_time(value[1])),
-                )
-            except Exception:
-                raise ValueError(
-                    "Failed to transform mom string to Time: '{}'".format(value)
-                )
-        else:
-            return mom_date_to_time(value)
+def _norm_id_text(value):
+    return value if isinstance(value, str) else ""
 
 
 class Charter(XmlAssembler):
-    _abstract: Optional[str | etree._Element] = None
-    _abstract_sources: List[str] = []
-    _archive: Optional[str] = None
-    _archive_location: Optional[str] = None
-    _chancellary_remarks: List[str] = []
-    _comments: List[str] = []
-    _condition: Optional[str] = None
-    _date: Optional[str | etree._Element] = None
-    _date_quote: Optional[str | etree._Element] = None
-    _date_value: Optional[Time | Tuple[Time, Time]] = None
-    _dimensions: Optional[str] = None
-    _external_link: Optional[str] = None
-    _fond: Optional[str] = None
-    _footnotes: List[str] = []
-    _graphic_urls: List[str] = []
-    _id_norm: Optional[str] = None
-    _id_old: Optional[str] = None
-    _id_text: str = ""
-    _index: List[str | etree._Element] = []
-    _index_geo_features: List[str | etree._Element] = []
-    _index_organizations: List[str | etree._Element] = []
-    _index_persons: List[str | etree._Element] = []
-    _index_places: List[str | etree._Element] = []
-    _issued_place: Optional[str | etree._Element] = None
-    _issuers: Optional[str | etree._Element | List[str] | List[etree._Element]] = None
-    _language: Optional[str] = None
-    _literature: List[str] = []
-    _literature_abstracts: List[str] = []
-    _literature_depictions: List[str] = []
-    _literature_editions: List[str] = []
-    _literature_secondary: List[str] = []
-    _material: Optional[str] = None
-    _notarial_authentication: Optional[str | etree._Element] = None
-    _recipient: Optional[str | etree._Element] = None
-    _seals: Optional[etree._Element | str | Seal | List[str] | List[Seal]] = None
-    _tradition: Optional[str] = None
-    _transcription: Optional[str | etree._Element] = None
-    _transcription_sources: List[str] = []
-    _witnesses: List[str | etree._Element] = []
+    # Declarative fields. Bespoke ones (id_norm, date_value, external_link,
+    # issuers, seals) keep hand-written properties below.
+    abstract = CharterField(_norm_str_or_element("abstract"))
+    abstract_sources = CharterField(get_str_list)
+    archive = CharterField(get_str)
+    archive_location = CharterField(get_str)
+    chancellary_remarks = CharterField(get_str_list)
+    comments = CharterField(get_str_list)
+    condition = CharterField(get_str)
+    date = CharterField(_norm_str_or_element("date", "dateRange"))
+    date_quote = CharterField(_norm_str_or_element("quoteOriginaldatierung"))
+    dimensions = CharterField(get_str)
+    fond = CharterField(get_str)
+    footnotes = CharterField(get_str_list)
+    graphic_urls = CharterField(get_str_list)
+    id_old = CharterField(get_str)
+    id_text = CharterField(_norm_id_text)
+    index = CharterField(_norm_str_or_element_list("index"))
+    index_geo_features = CharterField(_norm_str_or_element_list("geogName"))
+    index_organizations = CharterField(_norm_str_or_element_list("orgName"))
+    index_persons = CharterField(_norm_str_or_element_list("persName"))
+    index_places = CharterField(_norm_str_or_element_list("placeName"))
+    issued_place = CharterField(_norm_str_or_element("placeName"))
+    language = CharterField(get_str)
+    literature = CharterField(get_str_list)
+    literature_abstracts = CharterField(get_str_list)
+    literature_depictions = CharterField(get_str_list)
+    literature_editions = CharterField(get_str_list)
+    literature_secondary = CharterField(get_str_list)
+    material = CharterField(get_str)
+    notarial_authentication = CharterField(_norm_str_or_element("notariusDesc"))
+    recipient = CharterField(_norm_str_or_element("recipient"))
+    tradition = CharterField(get_str)
+    transcription = CharterField(_norm_str_or_element("tenor"))
+    transcription_sources = CharterField(get_str_list)
+    witnesses = CharterField(_norm_str_or_element_list("persName"))
+
+    # Defaults for bespoke hand-written properties (see below).
+    _id_norm: str | None = None
+    _date_value: Time | tuple[Time, Time] | None = None
+    _external_link: str | None = None
+    _issuers: str | etree._Element | list[str] | list[etree._Element] | None = None
+    _seals: etree._Element | str | Seal | list[str] | list[Seal] | None = None
 
     def __init__(
         self,
         id_text: str,
-        abstract: Optional[str | etree._Element] = None,
-        abstract_sources: Optional[str | List[str]] = [],
-        archive: Optional[str] = None,
-        archive_location: Optional[str] = None,
-        chancellary_remarks: Optional[str | List[str]] = [],
-        comments: Optional[str | List[str]] = [],
-        condition: Optional[str] = None,
-        date: Optional[str | etree._Element] = None,
-        date_quote: Optional[str | etree._Element] = None,
-        date_value: Optional[DateValue] = None,
-        dimensions: Optional[str] = None,
-        external_link: Optional[str] = None,
-        fond: Optional[str] = None,
-        footnotes: Optional[str | List[str]] = [],
-        graphic_urls: Optional[str | List[str]] = [],
-        id_norm: Optional[str] = None,
-        id_old: Optional[str] = None,
-        index: Optional[List[str | etree._Element]] = [],
-        index_geo_features: Optional[List[str | etree._Element]] = [],
-        index_organizations: Optional[List[str | etree._Element]] = [],
-        index_persons: Optional[List[str | etree._Element]] = [],
-        index_places: Optional[List[str | etree._Element]] = [],
-        issued_place: Optional[str | etree._Element] = None,
-        issuer: Optional[str | etree._Element] = None,
-        issuers: Optional[
-            str | etree._Element | List[str] | List[etree._Element]
-        ] = None,
-        language: Optional[str] = None,
-        literature: Optional[str | List[str]] = [],
-        literature_abstracts: Optional[str | List[str]] = [],
-        literature_depictions: Optional[str | List[str]] = [],
-        literature_editions: Optional[str | List[str]] = [],
-        literature_secondary: Optional[str | List[str]] = [],
-        material: Optional[str] = None,
-        notarial_authentication: Optional[str | etree._Element] = None,
-        recipient: Optional[str | etree._Element] = None,
-        seals: Optional[etree._Element | str | Seal | List[str] | List[Seal]] = None,
-        tradition: Optional[str] = None,
-        transcription: Optional[str | etree._Element] = None,
-        transcription_sources: Optional[str] | List[str] = [],
-        witnesses: Optional[List[str | etree._Element]] = [],
+        abstract: str | etree._Element | None = None,
+        abstract_sources: str | list[str] | None = None,
+        archive: str | None = None,
+        archive_location: str | None = None,
+        chancellary_remarks: str | list[str] | None = None,
+        comments: str | list[str] | None = None,
+        condition: str | None = None,
+        date: str | etree._Element | None = None,
+        date_quote: str | etree._Element | None = None,
+        date_value: DateValue | None = None,
+        dimensions: str | None = None,
+        external_link: str | None = None,
+        fond: str | None = None,
+        footnotes: str | list[str] | None = None,
+        graphic_urls: str | list[str] | None = None,
+        id_norm: str | None = None,
+        id_old: str | None = None,
+        index: list[str | etree._Element] | None = None,
+        index_geo_features: list[str | etree._Element] | None = None,
+        index_organizations: list[str | etree._Element] | None = None,
+        index_persons: list[str | etree._Element] | None = None,
+        index_places: list[str | etree._Element] | None = None,
+        issued_place: str | etree._Element | None = None,
+        issuers: None | (
+            str | etree._Element | list[str] | list[etree._Element]
+        ) = None,
+        language: str | None = None,
+        literature: str | list[str] | None = None,
+        literature_abstracts: str | list[str] | None = None,
+        literature_depictions: str | list[str] | None = None,
+        literature_editions: str | list[str] | None = None,
+        literature_secondary: str | list[str] | None = None,
+        material: str | None = None,
+        notarial_authentication: str | etree._Element | None = None,
+        recipient: str | etree._Element | None = None,
+        seals: etree._Element | str | Seal | list[str] | list[Seal] | None = None,
+        tradition: str | None = None,
+        transcription: str | etree._Element | None = None,
+        transcription_sources: str | None | list[str] = None,
+        witnesses: list[str | etree._Element] | None = None,
     ) -> None:
         """
         Creates a new charter object. Empty strings in the parameters are treated similar to None values.
@@ -280,7 +150,6 @@ class Charter(XmlAssembler):
             index_persons: A list of persons as texts or cei:persName etree._Element objects to be included in the index.
             index_places: A list of places as texts or cei:placeName etree._Element objects to be included in the index.
             issued_place: The place the charter has been issued at either as text or a complete cei:placeName etree._Element.
-            issuer: The charters single issuer either as a text or a etree._Element object. DEPRECATED - This parameter will be removed in future versions, please use the 'issuers' parameter, it accepts the same values as well as lists.
             issuers: The charters' issuers, as either a single or list of texts or complete cei:issuer etree._Element objects.
             language: The language of the charter as text.
             literature: A single text or list of texts descibing unspecified literature for the charter.
@@ -328,11 +197,6 @@ class Charter(XmlAssembler):
         self.index_places = index_places
         self.issued_place = issued_place
         self.issuers = issuers
-        if issuer is not None:
-            warnings.warn(
-                "The 'issuer' parameter is deprecated in favor of 'issuers' which can take the same value but supports multiple issuers. Setting issuer will erase values set with issuers for legacy support reasons."
-            )
-            self.issuers = issuer
         self.language = language
         self.literature = literature
         self.literature_abstracts = literature_abstracts
@@ -349,265 +213,52 @@ class Charter(XmlAssembler):
         self.witnesses = witnesses
 
     # --------------------------------------------------------------------#
-    #                             Properties                             #
+    #                       Bespoke field properties                     #
     # --------------------------------------------------------------------#
+    # Fields with logic that doesn't fit a single normalization callable.
 
     @property
-    def abstract(self):
-        return self._abstract
+    def id_norm(self):
+        """Percent-encoded id; falls back to a normalized `id_text`."""
+        return quote(self._id_norm if self._id_norm else self.id_text)
 
-    @abstract.setter
-    def abstract(self, value: Optional[str | etree._Element] = None):
-        if self.issuers is not None and isinstance(value, etree._Element):
-            raise ValueError(
-                "If abstract is an XML element, no issuer data is allowed, please join the abstract and issuer XML content yourself."
-            )
-        self._abstract = get_str_or_element(value, "abstract")
-
-    @property
-    def abstract_sources(self):
-        return self._abstract_sources
-
-    @abstract_sources.setter
-    def abstract_sources(self, value: Optional[str | List[str]] = []):
-        self._abstract_sources = get_str_list(value)
-
-    @property
-    def archive(self):
-        return self._archive
-
-    @archive.setter
-    def archive(self, value: Optional[str] = None):
-        self._archive = get_str(value)
-
-    @property
-    def archive_location(self):
-        return self._archive_location
-    
-    @archive_location.setter
-    def archive_location(self, value: Optional[str] = None):
-        self._archive_location = get_str(value)
-
-    @property
-    def chancellary_remarks(self):
-        return self._chancellary_remarks
-
-    @chancellary_remarks.setter
-    def chancellary_remarks(self, value: Optional[str | List[str]] = []):
-        self._chancellary_remarks = get_str_list(value)
-
-    @property
-    def comments(self):
-        return self._comments
-
-    @comments.setter
-    def comments(self, value: Optional[str | List[str]] = []):
-        self._comments = get_str_list(value)
-
-    @property
-    def condition(self):
-        return self._condition
-
-    @condition.setter
-    def condition(self, value: Optional[str] = None):
-        self._condition = get_str(value)
-
-    @property
-    def date(self):
-        return self._date
-
-    @date.setter
-    def date(self, value: Optional[str | etree._Element] = None):
-        self._date = get_str_or_element(value, "date", "dateRange")
-
-    @property
-    def date_quote(self):
-        return self._date_quote
-
-    @date_quote.setter
-    def date_quote(self, value: Optional[str | etree._Element] = None):
-        self._date_quote = get_str_or_element(value, "quoteOriginaldatierung")
+    @id_norm.setter
+    def id_norm(self, value: str | None = None):
+        self._id_norm = get_str(value)
 
     @property
     def date_value(self):
         return self._date_value
 
     @date_value.setter
-    def date_value(self, value: Optional[DateValue] = None):
-        # Don't allow to directly set date values if an XML date element is present
+    def date_value(self, value: DateValue | None = None):
         if isinstance(self.date, etree._Element):
             raise ValueError(
-                "Not allowed to set date value directly if the date is already an XML element."
+                "Cannot set date_value when 'date' is already an XML element."
             )
-        # Unknown MOM date (99999999)
-        elif (
-            isinstance(value, str) and (value == NO_DATE_VALUE or not len(value))
-        ) or (
-            isinstance(value, Tuple)
-            and len(value) == 2
-            and value[0] == NO_DATE_VALUE
-            and value[1] == NO_DATE_VALUE
-        ):
-            self._date_value = None
-        # Directly set None, Time and [Time, Time] values
-        elif (
-            value is None
-            or isinstance(value, Time)
-            or (
-                isinstance(value, Tuple)
-                and len(value) == 2
-                and isinstance(value[0], Time)
-                and isinstance(value[1], Time)
-            )
-        ):
-            self._date_value = value  # type: ignore
-        # Convert python date objects
-        elif isinstance(value, datetime):
-            self._date_value = Time(value, scale="ut1")
-        # Convert python date tuples
-        elif (
-            isinstance(value, Tuple)
-            and len(value) == 2
-            and isinstance(value[0], datetime)
-            and isinstance(value[1], datetime)
-        ):
-            self._date_value = (
-                Time(value[0], scale="ut1"),
-                Time(value[1], scale="ut1"),
-            )
-        # Convert strings
-        elif isinstance(value, str):
-            self._date_value = string_to_time(value)
-        # Convert string tuples
-        elif (
-            isinstance(value, Tuple)
-            and len(value) == 2
-            and isinstance(value[0], str)
-            and isinstance(value[1], str)
-        ):
-            self._date_value = string_to_time(value)  # type: ignore
-        else:
-            raise ValueError("Invalid date value: '{}'".format(value))
-
-    @property
-    def dimensions(self):
-        return self._dimensions
-
-    @dimensions.setter
-    def dimensions(self, value: Optional[str] = None):
-        self._dimensions = get_str(value)
+        # Shape and no-date handling live in to_cei.dates.parse.
+        self._date_value = parse_date(value)  # type: ignore[arg-type]
 
     @property
     def external_link(self):
         return self._external_link
 
     @external_link.setter
-    def external_link(self, value: Optional[str] = None):
+    def external_link(self, value: str | None = None):
         if not isinstance(value, str) or len(value) == 0:
-            return None
-        if not re.match(SIMPLE_URL_REGEX, value):
+            self._external_link = None
+            return
+        parsed = urlparse(value)
+        if (
+            parsed.scheme not in ("http", "https")
+            or not parsed.netloc
+            or "." not in parsed.netloc
+        ):
             raise ValueError(
-                "'{}' does not look like a valid external URL. If you think it is valid, please contact the to-CEI library maintainers and tell them.".format(
-                    value
-                )
+                f"'{value}' does not look like a valid external URL. If you think "
+                "it is valid, please contact the to-CEI library maintainers."
             )
         self._external_link = value
-
-    @property
-    def fond(self):
-        return self._fond
-    
-    @fond.setter
-    def fond(self, value: Optional[str] = None):
-        self._fond = get_str(value)
-    
-    @property
-    def footnotes(self):
-        return self._footnotes
-
-    @footnotes.setter
-    def footnotes(self, value: Optional[str | List[str]] = []):
-        self._footnotes = get_str_list(value)
-
-    @property
-    def graphic_urls(self):
-        return self._graphic_urls
-
-    @graphic_urls.setter
-    def graphic_urls(self, value: Optional[str | List[str]] = []):
-        self._graphic_urls = get_str_list(value)
-
-    @property
-    def id_norm(self):
-        return quote(self._id_norm if self._id_norm else self.id_text)
-
-    @id_norm.setter
-    def id_norm(self, value: Optional[str] = None):
-        self._id_norm = get_str(value)
-
-    @property
-    def id_old(self):
-        return self._id_old
-
-    @id_old.setter
-    def id_old(self, value: Optional[str] = None):
-        self._id_old = get_str(value)
-
-    @property
-    def id_text(self):
-        return self._id_text
-
-    @id_text.setter
-    def id_text(self, value: str):
-        self._id_text = value
-
-    @property
-    def index(self):
-        return self._index
-
-    @index.setter
-    def index(self, value: Optional[List[str | etree._Element]] = []):
-        self._index = get_str_or_element_list(value, "index")
-
-    @property
-    def index_geo_features(self):
-        return self._index_geo_features
-
-    @index_geo_features.setter
-    def index_geo_features(self, value: Optional[List[str | etree._Element]] = []):
-        self._index_geo_features = get_str_or_element_list(value, "geogName")
-
-    @property
-    def index_organizations(self):
-        return self._index_organizations
-
-    @index_organizations.setter
-    def index_organizations(self, value: Optional[List[str | etree._Element]] = []):
-        self._index_organizations = get_str_or_element_list(value, "orgName")
-
-    @property
-    def index_persons(self):
-        return self._index_persons
-
-    @index_persons.setter
-    def index_persons(self, value: Optional[List[str | etree._Element]] = []):
-        self._index_persons = get_str_or_element_list(value, "persName")
-
-    @property
-    def index_places(self):
-        return self._index_places
-
-    @index_places.setter
-    def index_places(self, value: Optional[List[str | etree._Element]] = []):
-        self._index_places = get_str_or_element_list(value, "placeName")
-
-    @property
-    def issued_place(self):
-        return self._issued_place
-
-    @issued_place.setter
-    def issued_place(self, value: Optional[str | etree._Element] = None):
-        self._issued_place = get_str_or_element(value, "placeName")
 
     @property
     def issuers(self):
@@ -616,96 +267,19 @@ class Charter(XmlAssembler):
     @issuers.setter
     def issuers(
         self,
-        value: Optional[str | etree._Element | List[str] | List[etree._Element]] = None,
+        value: str | etree._Element | list[str] | list[etree._Element] | None = None,
     ):
+        # Mutual exclusion with an XML `abstract` is enforced at
+        # serialization in `_create_cei_abstract`, not here.
         if value is None:
-            return None
-        elif self.abstract is not None and isinstance(self.abstract, etree._Element):
-            raise ValueError(
-                "XML element content for both issuer and abstract is not allowed, please join the issuer in the XML abstract yourself"
-            )
-        elif isinstance(value, etree._Element):
+            self._issuers = None
+            return
+        if isinstance(value, etree._Element):
             get_str_or_element(value, "issuer")
-        elif isinstance(value, List):
+        elif isinstance(value, list):
             for item in value:
                 get_str_or_element(item, "issuer")
         self._issuers = value
-
-    @property
-    def language(self):
-        return self._language
-
-    @language.setter
-    def language(self, value: Optional[str] = None):
-        self._language = get_str(value)
-
-    @property
-    def literature(self):
-        return self._literature
-
-    @literature.setter
-    def literature(self, value: Optional[str | List[str]] = []):
-        self._literature = get_str_list(value)
-
-    @property
-    def literature_abstracts(self):
-        return self._literature_abstracts
-
-    @literature_abstracts.setter
-    def literature_abstracts(self, value: Optional[str | List[str]] = []):
-        self._literature_abstracts = get_str_list(value)
-
-    @property
-    def literature_depictions(self):
-        return self._literature_depictions
-
-    @literature_depictions.setter
-    def literature_depictions(self, value: Optional[str | List[str]] = []):
-        self._literature_depictions = get_str_list(value)
-
-    @property
-    def literature_editions(self):
-        return self._literature_editions
-
-    @literature_editions.setter
-    def literature_editions(self, value: Optional[str | List[str]] = []):
-        self._literature_editions = get_str_list(value)
-
-    @property
-    def literature_secondary(self):
-        return self._literature_secondary
-
-    @literature_secondary.setter
-    def literature_secondary(self, value: Optional[str | List[str]] = []):
-        self._literature_secondary = get_str_list(value)
-
-    @property
-    def material(self):
-        return self._material
-
-    @material.setter
-    def material(self, value: Optional[str] = None):
-        self._material = get_str(value)
-
-    @property
-    def notarial_authentication(self):
-        return self._notarial_authentication
-
-    @notarial_authentication.setter
-    def notarial_authentication(self, value: Optional[str | etree._Element] = None):
-        self._notarial_authentication = get_str_or_element(value, "notariusDesc")
-
-    @property
-    def recipient(self):
-        return self._recipient
-
-    @recipient.setter
-    def recipient(self, value: Optional[str | etree._Element] = None):
-        if value is not None and isinstance(self.abstract, etree._Element):
-            raise ValueError(
-                "XML element content for both recipient and abstract is not allowed, please join the recipient in the XML abstract yourself"
-            )
-        self._recipient = get_str_or_element(value, "recipient")
 
     @property
     def seals(self):
@@ -714,57 +288,29 @@ class Charter(XmlAssembler):
     @seals.setter
     def seals(
         self,
-        value: Optional[etree._Element | str | Seal | List[str] | List[Seal]] = None,
+        value: etree._Element | str | Seal | list[str] | list[Seal] | None = None,
     ):
-        if value is None or isinstance(value, str) and len(value) == 0:
-            return None
-        validated = (
-            get_str_or_element(value, "sealDesc")
-            if isinstance(value, etree._Element)
-            else value
-        )
-        if validated is None:
+        if value is None or (isinstance(value, str) and len(value) == 0):
             self._seals = None
+            return
+        if isinstance(value, etree._Element):
+            self._seals = get_str_or_element(value, "sealDesc")
         else:
-            self._seals = validated
-
-    @property
-    def tradition(self):
-        return self._tradition
-
-    @tradition.setter
-    def tradition(self, value: Optional[str] = None):
-        self._tradition = get_str(value)
-
-    @property
-    def transcription(self):
-        return self._transcription
-
-    @transcription.setter
-    def transcription(self, value: Optional[str | etree._Element] = None):
-        self._transcription = get_str_or_element(value, "tenor")
-
-    @property
-    def transcription_sources(self):
-        return self._transcription_sources
-
-    @transcription_sources.setter
-    def transcription_sources(self, value: Optional[str | List[str]] = []):
-        self._transcription_sources = get_str_list(value)
-
-    @property
-    def witnesses(self):
-        return self._witnesses
-
-    @witnesses.setter
-    def witnesses(self, value: Optional[List[str | etree._Element]] = []):
-        self._witnesses = get_str_or_element_list(value, "persName")
+            self._seals = value
 
     # --------------------------------------------------------------------#
     #                        Private CEI creators                        #
     # --------------------------------------------------------------------#
 
-    def _create_cei_abstract(self) -> Optional[etree._Element]:
+    def _create_cei_abstract(self) -> etree._Element | None:
+        if isinstance(self.abstract, etree._Element) and (
+            self.issuers is not None or self.recipient is not None
+        ):
+            raise ValueError(
+                "Cannot serialize charter: when 'abstract' is an XML element, "
+                "'issuers' and 'recipient' must be None — please embed those "
+                "markup pieces directly inside the abstract element yourself."
+            )
         children = join(self._create_cei_recipient(), *self._create_cei_issuers())
         return (
             CEI.abstract(self.abstract, *children)
@@ -772,16 +318,16 @@ class Charter(XmlAssembler):
             else self.abstract
         )
 
-    def _create_cei_arch(self) -> Optional[etree._Element]:
+    def _create_cei_arch(self) -> etree._Element | None:
         return None if not self.archive else CEI.arch(self.archive)
     
-    def _create_cei_arch_fond(self) -> Optional[etree._Element]:
+    def _create_cei_arch_fond(self) -> etree._Element | None:
         return None if not self.fond else CEI.archFond(self.fond)
     
-    def _create_cei_settlement(self) -> Optional[etree._Element]:
+    def _create_cei_settlement(self) -> etree._Element | None:
         return None if not self.archive_location else CEI.settlement(self.archive_location)
     
-    def _create_cei_arch_identifier(self) -> Optional[etree._Element]:
+    def _create_cei_arch_identifier(self) -> etree._Element | None:
         children = join(
             self._create_cei_settlement(),
             self._create_cei_arch(),
@@ -792,12 +338,12 @@ class Charter(XmlAssembler):
         )
         return CEI.archIdentifier(*children) if len(children) else None
 
-    def _create_cei_alt_identifier(self) -> Optional[etree._Element]:
+    def _create_cei_alt_identifier(self) -> etree._Element | None:
         return (
             None if not self.id_old else CEI.altIdentifier(self.id_old, {"type": "old"})
         )
 
-    def _create_cei_auth(self) -> Optional[etree._Element]:
+    def _create_cei_auth(self) -> etree._Element | None:
         children = join(self._create_cei_notarius_desc(), self._create_cei_seal_desc())
         return CEI.auth(*children) if len(children) else None
 
@@ -813,7 +359,7 @@ class Charter(XmlAssembler):
         )
         return CEI.back(*children)
 
-    def _create_cei_bibls(self, bibls: List[str]) -> List[etree._Element]:
+    def _create_cei_bibls(self, bibls: list[str]) -> list[etree._Element]:
         return [CEI.bibl(bibl) for bibl in bibls]
 
     def _create_cei_body(self) -> etree._Element:
@@ -822,7 +368,7 @@ class Charter(XmlAssembler):
         )
         return CEI.body(*children)
 
-    def _create_cei_chdesc(self) -> Optional[etree._Element]:
+    def _create_cei_chdesc(self) -> etree._Element | None:
         children = join(
             self._create_cei_abstract(),
             self._create_cei_issued(),
@@ -832,7 +378,7 @@ class Charter(XmlAssembler):
         )
         return CEI.chDesc(*children) if len(children) else None
 
-    def _create_cei_condition(self) -> Optional[etree._Element]:
+    def _create_cei_condition(self) -> etree._Element | None:
         return None if self.condition is None else CEI.condition(self.condition)
 
     def _create_cei_date(self) -> etree._Element:
@@ -840,7 +386,7 @@ class Charter(XmlAssembler):
         if isinstance(self.date, etree._Element):
             return self.date
         # A date range tuple
-        if isinstance(self.date_value, Tuple):
+        if isinstance(self.date_value, tuple):
             return CEI.dateRange(
                 "{} - {}".format(
                     self.date_value[0].to_value("fits", subfmt="longdate"),
@@ -867,10 +413,10 @@ class Charter(XmlAssembler):
         # Nothing
         return CEI.date(NO_DATE_TEXT, {"value": NO_DATE_VALUE})
 
-    def _create_cei_dimensions(self) -> Optional[etree._Element]:
+    def _create_cei_dimensions(self) -> etree._Element | None:
         return None if self.dimensions is None else CEI.dimensions(self.dimensions)
 
-    def _create_cei_diplomatic_analysis(self) -> Optional[etree._Element]:
+    def _create_cei_diplomatic_analysis(self) -> etree._Element | None:
         children = join(
             self._create_cei_list_bibl(),
             self._create_cei_list_bibl_edition(),
@@ -882,14 +428,14 @@ class Charter(XmlAssembler):
         )
         return CEI.diplomaticAnalysis(*children) if len(children) else None
 
-    def _create_cei_div_notes(self) -> List[etree._Element]:
+    def _create_cei_div_notes(self) -> list[etree._Element]:
         return (
             CEI.divNotes(*[CEI.note(note) for note in self.footnotes])
             if len(self.footnotes)
             else []
         )
 
-    def _create_cei_figures(self) -> List[etree._Element]:
+    def _create_cei_figures(self) -> list[etree._Element]:
         return (
             [CEI.figure(CEI.graphic({"url": url})) for url in self.graphic_urls]
             if len(self.graphic_urls)
@@ -904,18 +450,18 @@ class Charter(XmlAssembler):
         attributes = {"id": self.id_norm}
         return CEI.idno(self.id_text, **attributes)
 
-    def _create_cei_issued(self) -> Optional[etree._Element]:
+    def _create_cei_issued(self) -> etree._Element | None:
         children = join(
             self._create_cei_place_name(self.issued_place), self._create_cei_date()
         )
         return CEI.issued(*children) if len(children) else None
 
-    def _create_cei_issuers(self) -> List[etree._Element]:
+    def _create_cei_issuers(self) -> list[etree._Element]:
         if self.issuers is None:
             return []
         elif isinstance(self.issuers, str):
             return [CEI.issuer(self.issuers)]
-        elif isinstance(self.issuers, List):
+        elif isinstance(self.issuers, list):
             return [
                 CEI.issuer(issuer) if isinstance(issuer, str) else issuer
                 for issuer in self.issuers
@@ -923,51 +469,51 @@ class Charter(XmlAssembler):
         else:
             return [self.issuers]
 
-    def _create_cei_lang_mom(self) -> Optional[etree._Element]:
+    def _create_cei_lang_mom(self) -> etree._Element | None:
         return None if self.language is None else CEI.lang_MOM(self.language)
 
-    def _create_cei_list_bibl(self) -> Optional[etree._Element]:
+    def _create_cei_list_bibl(self) -> etree._Element | None:
         return (
             CEI.listBibl(*self._create_cei_bibls(self.literature))
             if len(self.literature)
             else None
         )
 
-    def _create_cei_list_bibl_edition(self) -> Optional[etree._Element]:
+    def _create_cei_list_bibl_edition(self) -> etree._Element | None:
         return (
             CEI.listBiblEdition(*self._create_cei_bibls(self.literature_editions))
             if len(self.literature_editions)
             else None
         )
 
-    def _create_cei_list_bibl_erw(self) -> Optional[etree._Element]:
+    def _create_cei_list_bibl_erw(self) -> etree._Element | None:
         return (
             CEI.listBiblErw(*self._create_cei_bibls(self.literature_secondary))
             if len(self.literature_secondary)
             else None
         )
 
-    def _create_cei_list_bibl_faksimile(self) -> Optional[etree._Element]:
+    def _create_cei_list_bibl_faksimile(self) -> etree._Element | None:
         return (
             CEI.listBiblFaksimile(*self._create_cei_bibls(self.literature_depictions))
             if len(self.literature_depictions)
             else None
         )
 
-    def _create_cei_list_bibl_regest(self) -> Optional[etree._Element]:
+    def _create_cei_list_bibl_regest(self) -> etree._Element | None:
         return (
             CEI.listBiblRegest(*self._create_cei_bibls(self.literature_abstracts))
             if len(self.literature_abstracts)
             else None
         )
 
-    def _create_cei_material(self) -> Optional[etree._Element]:
+    def _create_cei_material(self) -> etree._Element | None:
         return None if self.material is None else CEI.material(self.material)
 
-    def _create_cei_nota(self) -> List[etree._Element]:
+    def _create_cei_nota(self) -> list[etree._Element]:
         return [CEI.nota(nota) for nota in self.chancellary_remarks]
 
-    def _create_cei_notarius_desc(self) -> Optional[etree._Element]:
+    def _create_cei_notarius_desc(self) -> etree._Element | None:
         return (
             self.notarial_authentication
             if self.notarial_authentication is None
@@ -976,28 +522,28 @@ class Charter(XmlAssembler):
         )
 
     def _create_cei_geog_name(
-        self, value: Optional[str | etree._Element]
-    ) -> Optional[etree._Element]:
+        self, value: str | etree._Element | None
+    ) -> etree._Element | None:
         return CEI.geogName(value) if isinstance(value, str) else value
 
     def _create_cei_index(
-        self, value: Optional[str | etree._Element]
-    ) -> Optional[etree._Element]:
+        self, value: str | etree._Element | None
+    ) -> etree._Element | None:
         return CEI.index(value) if isinstance(value, str) else value
 
     def _create_cei_org_name(
-        self, value: Optional[str | etree._Element]
-    ) -> Optional[etree._Element]:
+        self, value: str | etree._Element | None
+    ) -> etree._Element | None:
         return CEI.orgName(value) if isinstance(value, str) else value
 
-    def _create_cei_p(self) -> List[etree._Element]:
+    def _create_cei_p(self) -> list[etree._Element]:
         return (
             [CEI.p(comment) for comment in self.comments] if len(self.comments) else []
         )
 
     def _create_cei_pers_name(
-        self, value: Optional[str | etree._Element], type: Optional[str] = None
-    ) -> Optional[etree._Element]:
+        self, value: str | etree._Element | None, type: str | None = None
+    ) -> etree._Element | None:
         if isinstance(value, str):
             attributes = {}
             if type is not None:
@@ -1010,7 +556,7 @@ class Charter(XmlAssembler):
         else:
             return None
 
-    def _create_cei_physical_desc(self) -> Optional[etree._Element]:
+    def _create_cei_physical_desc(self) -> etree._Element | None:
         children = join(
             self._create_cei_material(),
             self._create_cei_dimensions(),
@@ -1019,18 +565,18 @@ class Charter(XmlAssembler):
         return CEI.physicalDesc(*children) if len(children) else None
 
     def _create_cei_place_name(
-        self, value: Optional[str | etree._Element]
-    ) -> Optional[etree._Element]:
+        self, value: str | etree._Element | None
+    ) -> etree._Element | None:
         return CEI.placeName(value) if isinstance(value, str) else value
 
-    def _create_cei_quote_originaldatierung(self) -> Optional[etree._Element]:
+    def _create_cei_quote_originaldatierung(self) -> etree._Element | None:
         return (
             self.date_quote
             if self.date_quote is None or isinstance(self.date_quote, etree._Element)
             else CEI.quoteOriginaldatierung(self.date_quote)
         )
 
-    def _create_cei_recipient(self) -> Optional[etree._Element]:
+    def _create_cei_recipient(self) -> etree._Element | None:
         return (
             None
             if self.recipient is None
@@ -1041,14 +587,14 @@ class Charter(XmlAssembler):
             )
         )
 
-    def _create_cei_ref(self) -> Optional[etree._Element]:
+    def _create_cei_ref(self) -> etree._Element | None:
         return (
             None
             if self.external_link is None
             else CEI.ref({"target": self.external_link})
         )
 
-    def _create_cei_seal_desc(self) -> Optional[etree._Element]:
+    def _create_cei_seal_desc(self) -> etree._Element | None:
         if self.seals is None:
             return None
         elif isinstance(self.seals, etree._Element):
@@ -1066,7 +612,7 @@ class Charter(XmlAssembler):
                 ]
             )
 
-    def _create_cei_source_desc(self) -> Optional[etree._Element]:
+    def _create_cei_source_desc(self) -> etree._Element | None:
         children = []
         if self.abstract_sources:
             children.append(
@@ -1080,7 +626,7 @@ class Charter(XmlAssembler):
             )
         return CEI.sourceDesc(*children) if len(children) else None
 
-    def _create_cei_tenor(self) -> Optional[etree._Element]:
+    def _create_cei_tenor(self) -> etree._Element | None:
         return (
             self.transcription
             if self.transcription is None
@@ -1099,10 +645,10 @@ class Charter(XmlAssembler):
             text.attrib.update(CEI_SCHEMA_LOCATION_ATTRIBUTE)
         return text
 
-    def _create_cei_traditio_form(self) -> Optional[etree._Element]:
+    def _create_cei_traditio_form(self) -> etree._Element | None:
         return None if not self._tradition else CEI.traditioForm(self._tradition)
 
-    def _create_cei_witness_orig(self) -> Optional[etree._Element]:
+    def _create_cei_witness_orig(self) -> etree._Element | None:
         children = join(
             self._create_cei_traditio_form(),
             self._create_cei_arch_identifier(),
@@ -1128,14 +674,14 @@ class Charter(XmlAssembler):
         """
         return self._create_cei_text(add_schema_location)
 
-    def to_file(self, folder: Optional[str] = None, add_schema_location: bool = False):
+    def to_file(self, folder: str | None = None, add_schema_location: bool = False):
         """Writes the xml representation of the charter to a file. The filename is generated from the normalized charter id.
 
         Args:
             folder (str): The folder to write the file to. If this is ommitted, the file is written to the place where the script is executed from.
             add_schema_location (bool): If True, the CEI schema location is added to the root element. Defaults to False.
         """
-        return super(Charter, self).to_file(
+        return super().to_file(
             self.id_norm + ".cei",
             folder=folder,
             add_schema_location=add_schema_location,

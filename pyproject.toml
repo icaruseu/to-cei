@@ -1,0 +1,42 @@
+[project]
+name = "to_cei"
+version = "0.4.0"
+description = "to-CEI"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "GPL-3.0" }
+authors = [{ name = "Daniel Jeller", email = "it@icar-us.eu" }]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "astropy",
+    "lxml",
+    "requests",
+    "xmlschema",
+]
+
+[project.urls]
+Homepage = "https://github.com/icaruseu/to-cei"
+
+[dependency-groups]
+dev = [
+    "build",
+    "lxml-stubs",
+    "pytest",
+    "twine",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["to_cei"]
+include-package-data = true

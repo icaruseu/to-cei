@@ -1,19 +1,17 @@
-from typing import List, Optional
-
 from lxml import etree
 
 from to_cei.config import CEI_NS
 
 
 def join(
-    *values: Optional[etree._Element | List[etree._Element]],
-) -> List[etree._Element]:
+    *values: etree._Element | list[etree._Element] | None,
+) -> list[etree._Element]:
     """Joins all non-empty values in a list."""
     all = []
     for value in values:
         if isinstance(value, etree._Element):
             all.append(value)
-        elif isinstance(value, List) and len(value):
+        elif isinstance(value, list) and len(value):
             all = all + value
     return all
 
@@ -28,21 +26,19 @@ def ns(element: etree._Element) -> str:
     return etree.QName(element.tag).namespace
 
 
-def get_str(value: Optional[str] = None) -> Optional[str]:
+def get_str(value: str | None = None) -> str | None:
     return value if value is not None and len(value) else None
 
 
-def get_str_list(value: Optional[str | List[str]] = []) -> List[str]:
-    return (
-        []
-        if value is None or (isinstance(value, str) and not len(value))
-        else (value if isinstance(value, List) else [value])
-    )
+def get_str_list(value: str | list[str] | None = None) -> list[str]:
+    if value is None or (isinstance(value, str) and not len(value)):
+        return []
+    return list(value) if isinstance(value, list) else [value]
 
 
 def get_str_or_element(
-    value: Optional[str | etree._Element], *tags: str
-) -> Optional[str | etree._Element]:
+    value: str | etree._Element | None, *tags: str
+) -> str | etree._Element | None:
     if isinstance(value, str) and not len(value):
         return None
     if isinstance(value, etree._Element):
@@ -62,8 +58,8 @@ def get_str_or_element(
 
 
 def get_str_or_element_list(
-    values: Optional[List[str | etree._Element]], *tags: str
-) -> List[str | etree._Element]:
+    values: list[str | etree._Element] | None, *tags: str
+) -> list[str | etree._Element]:
     result = []
     if values is not None:
         for value in values:

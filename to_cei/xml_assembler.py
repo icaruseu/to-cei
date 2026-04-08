@@ -1,7 +1,6 @@
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Optional
 
 from lxml import etree
 
@@ -10,7 +9,7 @@ from to_cei.config import CEI_PREFIX
 
 class XmlAssembler(ABC):
     @abstractmethod
-    def to_xml(self, add_schema_location: bool = False) -> Optional[etree._Element]:
+    def to_xml(self, add_schema_location: bool = False) -> etree._Element | None:
         pass
 
     def to_string(self, add_schema_location: bool = False) -> str:
@@ -38,8 +37,8 @@ class XmlAssembler(ABC):
     def to_file(
         self,
         name: str,
-        folder: Optional[str | Path] = None,
-        inclusive_ns_prefixes: List[str] = [],
+        folder: str | Path | None = None,
+        inclusive_ns_prefixes: list[str] | None = None,
         add_schema_location: bool = False,
     ):
         xml = self.to_xml(add_schema_location)
@@ -59,7 +58,7 @@ class XmlAssembler(ABC):
             os.path.join(folder, name + ".xml"),
             encoding="UTF-8",
             pretty_print=True,
-            inclusive_ns_prefixes=[CEI_PREFIX] + inclusive_ns_prefixes,
+            inclusive_ns_prefixes=[CEI_PREFIX] + (inclusive_ns_prefixes or []),
             xml_declaration=True,
             standalone=False,
         )

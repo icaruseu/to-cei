@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<cei:text xmlns:cei="http://www.monasterium.net/NS/cei" type="charter">
+  <cei:front/>
+  <cei:body>
+    <cei:idno id="test">test</cei:idno>
+    <cei:chDesc>
+      <cei:issued>
+        <cei:date value="99999999">No date</cei:date>
+      </cei:issued>
+      <cei:witnessOrig>
+        <cei:archIdentifier>
+          <cei:idno id="test">test</cei:idno>
+        </cei:archIdentifier>
+      </cei:witnessOrig>
+    </cei:chDesc>
+  </cei:body>
+  <cei:back/>
+</cei:text>

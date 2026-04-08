@@ -1020,7 +1020,7 @@ def test_has_correct_abstract_with_text_single_issuer():
         "Konrad von Lintz, Caplan zu St. Pankraz, beurkundet den vorstehenden Vertrag."
     )
     issuer = "Konrad von Lintz"
-    charter = Charter(id_text="1", abstract=abstract, issuer=issuer)
+    charter = Charter(id_text="1", abstract=abstract, issuers=issuer)
     assert isinstance(charter.issuers, str)
     assert charter.issuers == issuer
     issuer_xml = xps(charter, "/cei:text/cei:body/cei:chDesc/cei:abstract/cei:issuer")
@@ -1081,9 +1081,32 @@ def test_raises_exception_for_incorrect_xml_issuer_list():
         Charter(id_text="1", issuers=incorrect_elements)
 
 
-def test_raises_exception_for_xml_abstract_with_issuer():
+def test_raises_exception_for_xml_abstract_with_issuer_at_serialization():
+    # Construction itself is allowed in either order — the constraint is
+    # only enforced when the charter is actually serialized to XML.
+    charter = Charter(
+        id_text="1", abstract=CEI.abstract("An abstract"), issuers="An issuer"
+    )
+    with pytest.raises(ValueError, match="abstract.*XML.*issuers"):
+        charter.to_xml()
+
+
+def test_xml_abstract_with_issuer_constraint_independent_of_assignment_order():
+    # Setting issuers first then abstract used to raise from the issuers
+    # setter; setting abstract first then issuers used to raise from the
+    # abstract setter. Both must now succeed at assignment time and only
+    # fail at serialization.
+    c1 = Charter(id_text="1")
+    c1.issuers = "An issuer"
+    c1.abstract = CEI.abstract("An abstract")
     with pytest.raises(ValueError):
-        Charter(id_text="1", abstract=CEI.abstract("An abstract"), issuers="An issuer")
+        c1.to_xml()
+
+    c2 = Charter(id_text="2")
+    c2.abstract = CEI.abstract("An abstract")
+    c2.issuers = "An issuer"
+    with pytest.raises(ValueError):
+        c2.to_xml()
 
 
 # --------------------------------------------------------------------#
@@ -1312,11 +1335,13 @@ def test_has_correct_abstract_with_xml_recipient():
     assert recipient_xml.text == recipient.text
 
 
-def test_raises_exception_for_xml_abstract_with_recipient():
-    with pytest.raises(ValueError):
-        Charter(
-            id_text="1", abstract=CEI.abstract("An abstract"), recipient="An recipient"
-        )
+def test_raises_exception_for_xml_abstract_with_recipient_at_serialization():
+    # Construction is allowed; the constraint only fires at to_xml().
+    charter = Charter(
+        id_text="1", abstract=CEI.abstract("An abstract"), recipient="A recipient"
+    )
+    with pytest.raises(ValueError, match="abstract.*XML"):
+        charter.to_xml()
 
 
 def test_raises_exception_for_incorrect_xml_recipient():
@@ -1504,3 +1529,48 @@ def test_raises_exception_for_invalid_witnesses_xml():
         Charter(
             id_text="1", witnesses=[CEI.persName("A Person"), CEI.placeName("A place")]
         )
+
+
+# --------------------------------------------------------------------#
+#                  No mutable-default aliasing across                #
+#                  Charter instances                                  #
+# --------------------------------------------------------------------#
+
+
+def test_list_fields_are_not_shared_between_instances():
+    c1 = Charter(id_text="1")
+    c1.witnesses = ["Alice"]
+    c1.literature = ["Lit A"]
+    c1.abstract_sources = ["Src A"]
+    c2 = Charter(id_text="2")
+    assert c2.witnesses == []
+    assert c2.literature == []
+    assert c2.abstract_sources == []
+    # Mutating c1 must not bleed into c2.
+    c1.witnesses.append("Bob")
+    assert c2.witnesses == []
+
+
+# --------------------------------------------------------------------#
+#                       External link validation                     #
+# --------------------------------------------------------------------#
+
+
+def test_external_link_accepts_valid_https_url():
+    charter = Charter(id_text="1", external_link="https://example.org/charters/1")
+    assert charter.external_link == "https://example.org/charters/1"
+
+
+def test_external_link_accepts_empty_as_none():
+    charter = Charter(id_text="1", external_link="")
+    assert charter.external_link is None
+
+
+def test_external_link_rejects_url_without_tld():
+    with pytest.raises(ValueError):
+        Charter(id_text="1", external_link="http://localhost")
+
+
+def test_external_link_rejects_non_http_scheme():
+    with pytest.raises(ValueError):
+        Charter(id_text="1", external_link="ftp://example.org/x")

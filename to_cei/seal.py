@@ -1,5 +1,3 @@
-from typing import List, Optional, Tuple
-
 from lxml import etree
 
 from to_cei.config import CEI
@@ -8,19 +6,19 @@ from to_cei.xml_assembler import XmlAssembler
 
 
 class Seal(XmlAssembler):
-    _condition: Optional[str] = None
-    _dimensions: Optional[str] = None
-    _legend: Optional[str] | List[Tuple[str, str]] = []
-    _material: Optional[str] = None
-    _sigillant: Optional[str | etree._Element] = None
+    _condition: str | None = None
+    _dimensions: str | None = None
+    _legend: str | list[tuple[str, str]] | None = None
+    _material: str | None = None
+    _sigillant: str | etree._Element | None = None
 
     def __init__(
         self,
-        condition: Optional[str] = None,
-        dimensions: Optional[str] = None,
-        legend: Optional[str | List[Tuple[str, str]]] = [],
-        material: Optional[str] = None,
-        sigillant: Optional[str | etree._Element] = None,
+        condition: str | None = None,
+        dimensions: str | None = None,
+        legend: str | list[tuple[str, str]] | None = None,
+        material: str | None = None,
+        sigillant: str | etree._Element | None = None,
     ) -> None:
         """
         Creates a seal instance.
@@ -52,7 +50,7 @@ class Seal(XmlAssembler):
         return self._condition
 
     @condition.setter
-    def condition(self, value: Optional[str] = None):
+    def condition(self, value: str | None = None):
         self._condition = get_str(value)
 
     @property
@@ -60,7 +58,7 @@ class Seal(XmlAssembler):
         return self._dimensions
 
     @dimensions.setter
-    def dimensions(self, value: Optional[str] = None):
+    def dimensions(self, value: str | None = None):
         self._dimensions = get_str(value)
 
     @property
@@ -68,19 +66,18 @@ class Seal(XmlAssembler):
         return self._legend
 
     @legend.setter
-    def legend(self, value: Optional[str | List[Tuple[str, str]]] = []):
-        self._legend = (
-            []
-            if value is None or (isinstance(value, str) and not len(value))
-            else value
-        )
+    def legend(self, value: str | list[tuple[str, str]] | None = None):
+        if value is None or (isinstance(value, str) and not len(value)):
+            self._legend = None
+        else:
+            self._legend = value
 
     @property
     def material(self):
         return self._material
 
     @material.setter
-    def material(self, value: Optional[str] = None):
+    def material(self, value: str | None = None):
         self._material = get_str(value)
 
     @property
@@ -88,14 +85,14 @@ class Seal(XmlAssembler):
         return self._sigillant
 
     @sigillant.setter
-    def sigillant(self, value: Optional[str | etree._Element] = None):
+    def sigillant(self, value: str | etree._Element | None = None):
         self._sigillant = get_str_or_element(value, "persName", "orgName")
 
     # --------------------------------------------------------------------#
     #                           Public methods                           #
     # --------------------------------------------------------------------#
 
-    def to_xml(self) -> Optional[etree._Element]:
+    def to_xml(self) -> etree._Element | None:
         children = []
         if self.condition is not None:
             children.append(CEI.sealCondition(self.condition))
@@ -103,7 +100,7 @@ class Seal(XmlAssembler):
             children.append(CEI.sealDimensions(self.dimensions))
         if isinstance(self.legend, str):
             children.append(CEI.legend(self.legend))
-        if isinstance(self.legend, List):
+        if isinstance(self.legend, list):
             children = children + [
                 CEI.legend(legend[1], {"place": legend[0]}) for legend in self.legend
             ]

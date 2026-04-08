@@ -36,3 +36,28 @@ def test_add_schema_location_is_respected():
 def test_raises_exception_for_empty_name():
     with pytest.raises(ValueError):
         CharterGroup("")
+
+
+def test_charters_are_not_shared_between_instances():
+    g1 = CharterGroup("g1")
+    g1.charters.append(Charter("a"))
+    g2 = CharterGroup("g2")
+    assert g2.charters == []
+
+
+def test_filename_slug_handles_umlauts(tmp_path):
+    group = CharterGroup("Schöne Gruppe", [Charter("1")])
+    group.to_file(tmp_path)
+    assert pathlib.Path(tmp_path, "schone_gruppe.cei.group.xml").is_file()
+
+
+def test_filename_slug_handles_punctuation(tmp_path):
+    group = CharterGroup("St. Veit a. d. Glan", [Charter("1")])
+    group.to_file(tmp_path)
+    assert pathlib.Path(tmp_path, "st_veit_a_d_glan.cei.group.xml").is_file()
+
+
+def test_filename_explicit_override(tmp_path):
+    group = CharterGroup("Whatever", [Charter("1")])
+    group.to_file(tmp_path, filename="custom_name")
+    assert pathlib.Path(tmp_path, "custom_name.cei.group.xml").is_file()
