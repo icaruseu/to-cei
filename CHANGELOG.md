@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2]
+
+Dependency refresh. No code or behaviour changes.
+
+### Changed
+- Upgraded locked dependencies to current releases, notably
+  `lxml` 6.0.2 → 6.1.0 (picks up the XPath use-after-free fix and
+  subsequent follow-ups). Also bumped `astropy-iers-data`, `build`
+  (1.4.2 → 1.4.3), `idna` (3.11 → 3.12), `more-itertools`
+  (11.0.1 → 11.0.2), `packaging` (26.0 → 26.1), and `rich`
+  (14.3.3 → 15.0.0). Full test suite (296 tests) passes against the
+  new versions.
+
 ## [0.4.1]
 
 Documentation and test-coverage release. No code or behaviour changes
