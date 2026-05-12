@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3]
+
+Dependency refresh. No code or behaviour changes.
+
+### Changed
+- Upgraded locked dependencies to current releases, notably
+  `urllib3` 2.6.3 → 2.7.0 (security fix) and `cryptography`
+  46.0.7 → 48.0.0. Also bumped `astropy-iers-data`, `build`
+  (1.4.3 → 1.5.0), `certifi` (2026.2.25 → 2026.4.22), `idna`
+  (3.12 → 3.14), `markdown-it-py` (4.0.0 → 4.2.0), `nh3`
+  (0.3.4 → 0.3.5), `packaging` (26.1 → 26.2), and `requests`
+  (2.33.1 → 2.34.0). Full test suite (296 tests) passes against
+  the new versions.
+
 ## [0.4.2]
 
 Dependency refresh. No code or behaviour changes.
