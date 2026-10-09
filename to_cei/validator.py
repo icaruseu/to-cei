@@ -13,7 +13,7 @@ class Validator:
     _schema: xmlschema.XMLSchema11
 
     def __init__(self) -> None:
-        xsd_content = config.file_cache.get(config.CEI_NS)
+        xsd_content = config.file_cache.get(config.CEI_SCHEMA_URL)
         self._schema = xmlschema.XMLSchema11(xsd_content)
 
     def validate_cei(self, element: etree._Element) -> None:

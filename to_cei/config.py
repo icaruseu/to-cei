@@ -7,6 +7,8 @@ file_cache = filecache.FileCache()
 
 CEI_NS: str = "http://www.monasterium.net/NS/cei"
 
+CEI_SCHEMA_URL: str = "https://raw.githubusercontent.com/icaruseu/mom-ca/master/my/XRX/src/mom/app/cei/xsd/cei.xsd"
+
 CEI_PREFIX: str = "cei"
 
 CHARTER_NSS = {

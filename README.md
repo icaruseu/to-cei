@@ -280,7 +280,10 @@ v.validate_cei(charter.to_xml())    # raises XMLSchemaValidationError on failure
 v.is_valid_cei(charter.to_xml())    # bool variant
 ```
 
-The XSD is cached on disk under `~/.cache/to-cei/` after the first fetch.
+The XSD is fetched from the
+[mom-ca repository](https://github.com/icaruseu/mom-ca) on GitHub and cached on
+disk under `~/.cache/to-cei/` after the first fetch. To update to the current
+schema, delete that directory; the next `Validator()` fetches it again.
 
 ## Field reference
 
