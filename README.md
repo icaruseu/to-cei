@@ -165,7 +165,8 @@ with `cei:testis` in an `abstract` or `transcription` element.
 applies the rules of Monasterium's import. These rules keep a ";" and turn an id
 that ends up empty into "0000". The result is the `@id` of `cei:body/cei:idno`
 and the charter's file name `<id_norm>.cei.xml`, and the import leaves it
-unchanged.
+unchanged. The charter's Atom id in Monasterium holds it percent-encoded, so
+`Ötztal_1` appears there as `%C3%96tztal_1`.
 
 A cleaned id can contain characters that Windows doesn't allow in file names,
 such as the `|` that replaces a `/`, so `to_file()` fails there for such a
@@ -208,9 +209,9 @@ expire. `Validator(refresh=True)` fetches the current schema and replaces it.
 
 `mom_id(text)` cleans an id as described under
 [Ids and file names](#ids-and-file-names). Data that reaches the database
-without the import, for example as an Atom entry, needs this form, because
-nothing cleans it there. `mom_id` also gives the id of an existing charter from
-its shelf mark.
+without the import, for example as an Atom entry, needs this form in `@id`,
+because nothing cleans it there, and its Atom id needs it percent-encoded.
+`mom_id` also gives the id of an existing charter from its shelf mark.
 
 `to_cei.dates` reads source dates without a charter. `parse` returns a
 `MomDate`, a `(MomDate, MomDate)` range or `None`, `to_mom_date_value` writes

@@ -80,8 +80,9 @@ def mom_id(text: str) -> str:
     space, " (" becomes "(" and " - " becomes "-", spaces become "_" and
     "/" becomes "|", and "?", "=", ":", "%", "#" and "$" are removed. An id
     that ends up empty becomes "0000". An id in this form stays unchanged
-    on import, and it is the id to use where data reaches the database
-    without the import, for example as an Atom entry.
+    on import, and it is the `@id` to use where data reaches the database
+    without the import, for example as an Atom entry. The Atom id holds it
+    percent-encoded.
     """
     for old, new in _MOM_ID_REPLACEMENTS:
         text = text.replace(old, new)

@@ -1,6 +1,6 @@
 [project]
 name = "to_cei"
-version = "0.5.0"
+version = "0.5.1"
 description = "Build CEI XML for Monasterium.net from Python data"
 readme = "README.md"
 requires-python = ">=3.13"

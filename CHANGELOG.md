@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1]
+
+### Fixed
+
+- The docs said that data reaching Monasterium without the import, such as an
+  Atom entry, needs the id in the form `mom_id()` gives it. That holds for
+  `@id`. The Atom id holds that id percent-encoded.
+
 ## [0.5.0]
 
 [UPGRADING.md](UPGRADING.md) describes the changes a conversion script for 0.4

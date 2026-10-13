@@ -90,18 +90,18 @@ signs. An id made only of ASCII letters, digits, `_`, `.`, `-` and `~` is the
 same in the 0.4 file, in Monasterium and in 0.5. An id that also holds `/`
 differs only in the 0.4 file. Any other id differs from both:
 
-| `id_text`    | 0.4 file                | Monasterium from the 0.4 file | 0.5           |
-| ------------ | ----------------------- | ----------------------------- | ------------- |
-| `1.4.I-001`  | `1.4.I-001`             | `1.4.I-001`                   | `1.4.I-001`   |
-| `A/1`        | `A/1`                   | `A\|1`                        | `A\|1`        |
-| `1307 II 22` | `1307%20II%2022`        | `130720II2022`                | `1307_II_22`  |
-| `ä1`         | `%C3%A41`               | `C3A41`                       | `ä1`          |
-| `K//1, n° 1` | `K//1%2C%20n%C2%B0%201` | `K\|\|12C20nC2B0201`          | `K\|\|1_n°_1` |
+| `id_text`    | 0.4 file                | Monasterium `@id` from the 0.4 file | 0.5           |
+| ------------ | ----------------------- | ----------------------------------- | ------------- |
+| `1.4.I-001`  | `1.4.I-001`             | `1.4.I-001`                         | `1.4.I-001`   |
+| `A/1`        | `A/1`                   | `A\|1`                              | `A\|1`        |
+| `1307 II 22` | `1307%20II%2022`        | `130720II2022`                      | `1307_II_22`  |
+| `ä1`         | `%C3%A41`               | `C3A41`                             | `ä1`          |
+| `K//1, n° 1` | `K//1%2C%20n%C2%B0%201` | `K\|\|12C20nC2B0201`                | `K\|\|1_n°_1` |
 
 Wherever ids from both versions meet, such as when new files are matched with
-charters already in Monasterium, compare them with this in mind. Passing the id
-Monasterium has as `id_norm` writes that id, because `mom_id` leaves it
-unchanged.
+charters already in Monasterium, compare them with this in mind. Passing the
+`@id` Monasterium has as `id_norm` writes that id, because `mom_id` leaves it
+unchanged. Monasterium's Atom ids hold these ids percent-encoded.
 
 `CharterGroup` raises `ValueError` if two charters have the same `id_norm`.
 
