@@ -4,61 +4,35 @@ from pathlib import Path
 
 from lxml import etree
 
-from to_cei.config import CEI_PREFIX
-
 
 class XmlAssembler(ABC):
     @abstractmethod
-    def to_xml(self, add_schema_location: bool = False) -> etree._Element | None:
+    def to_xml(self, add_schema_location: bool = False) -> etree._Element:
         pass
 
     def to_string(self, add_schema_location: bool = False) -> str:
         """Serializes the xml representation of the object to a string.
 
         Args:
-            add_schema_location: If True, the CEI schema location is added to the root element.
+            add_schema_location: If True, the CEI schema location is added to
+                the root element.
 
         Returns:
             A string representation of the object.
         """
-        xml = self.to_xml(add_schema_location)
-        return (
-            ""
-            if xml is None
-            else str(
-                etree.tostring(
-                    xml,
-                    encoding="unicode",
-                    pretty_print=True,
-                )
-            )
-        )
+        return etree.tostring(self.to_xml(add_schema_location), encoding="unicode")
 
-    def to_file(
+    def _write_file(
         self,
         name: str,
-        folder: str | Path | None = None,
-        inclusive_ns_prefixes: list[str] | None = None,
+        folder: str | os.PathLike[str] | None = None,
         add_schema_location: bool = False,
-    ):
-        xml = self.to_xml(add_schema_location)
-        if xml is None:
-            raise Exception("Failed to read xml")
-        folder = (
-            folder
-            if isinstance(folder, str)
-            else (
-                str(folder.absolute())
-                if isinstance(folder, Path)
-                else os.path.abspath(os.getcwd())
-            )
-        )
-        os.makedirs(folder, exist_ok=True)
-        etree.ElementTree(xml).write(
-            os.path.join(folder, name + ".xml"),
+    ) -> None:
+        directory = Path(folder or ".")
+        directory.mkdir(parents=True, exist_ok=True)
+        etree.ElementTree(self.to_xml(add_schema_location)).write(
+            directory / (name + ".xml"),
             encoding="UTF-8",
-            pretty_print=True,
-            inclusive_ns_prefixes=[CEI_PREFIX] + (inclusive_ns_prefixes or []),
             xml_declaration=True,
             standalone=False,
         )

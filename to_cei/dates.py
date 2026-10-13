@@ -1,114 +1,129 @@
 """Date parsing for `to_cei`.
 
-`parse` is the public entry point — see its docstring for the full list
-of accepted formats. The CEI/MOM-native format is `mom_date_to_time` /
-`to_mom_date_value` (`YYYYMMDD`, with `99` denoting unknown month/day).
+`parse` turns the date forms found in archival data into a `MomDate`, a
+`(MomDate, MomDate)` range or `None`. See its docstring for the accepted
+forms. `to_mom_date_value` writes the CEI/MOM value form (`YYYYMMDD`).
+
+Years before 1000 have no leading zero in the MOM form: year 769 is
+``"7690101"``, not ``"07690101"``, which the CEI schema rejects. Years
+below 100 still need three digits there, so year 12 is ``"0121211"``.
+ISO and dotted forms accept padded and unpadded years, but a short
+unpadded form is ambiguous: ``"12.12.11"`` parses as day 12, month 12,
+year 11, because a year-first form needs at least three year digits.
+Fully padded forms such as ``"0012-12-11"`` avoid that.
 """
 
-
-import calendar
+import numbers
 import re
-from datetime import datetime
-from typing import Callable, Union
-
-from astropy.time import Time
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import date
 
 __all__ = [
     "MOM_DATE_REGEX",
     "NO_DATE_VALUE",
-    "NO_DATE_MARKERS",
     "ConventionParser",
+    "DateInput",
+    "MomDate",
     "is_no_date",
     "parse",
     "to_mom_date_value",
-    "mom_date_to_time",
-    "string_to_time",
-    "extract_time",
 ]
 
+_MONTH_DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 
-# Archival "no date" markers, matched case-insensitively. The MOM
-# `"99999999"` sentinel and the empty string are also treated as no-date
-# by `is_no_date()` and `parse()`.
-NO_DATE_MARKERS: frozenset[str] = frozenset(
-    {
-        # German
-        "ohne datum",
-        "o. d.",
-        "o.d.",
-        "od",
-        "kein datum",
-        "undatiert",
-        # Latin (used across European archives)
-        "sine dato",
-        "sine die",
-        "s. d.",
-        "s.d.",
-        "sd",
-        # English
-        "no date",
-        "n. d.",
-        "n.d.",
-        "nd",
-        "undated",
-    }
-)
+
+def _days_in_month(year: int, month: int) -> int:
+    if month == 2 and year % 4 == 0:
+        return 29
+    return _MONTH_DAYS[month - 1]
+
+
+@dataclass(frozen=True, order=True)
+class MomDate:
+    """A calendar date of a charter.
+
+    Years count astronomically, so year 0 is 1 BCE and year -450 is
+    451 BCE.
+
+    The day is checked against the Julian leap rule, so every year
+    divisible by 4 has a 29 February, including 1300, 1700 and 1900.
+    Resolved charter dates follow the calendar in force where the
+    charter was issued, which is the Julian calendar before the local
+    calendar reform, in some territories long after 1582. A 29 February
+    of a Julian leap year is therefore a valid date in any century. The
+    check accepts every date that is valid in either calendar, so it
+    doesn't catch a 29 February given for a Gregorian common year.
+
+    Raises:
+        TypeError: if a part isn't an integer.
+        ValueError: if the month or day does not exist.
+    """
+
+    year: int
+    month: int
+    day: int
+
+    def __post_init__(self) -> None:
+        for name in ("year", "month", "day"):
+            part = getattr(self, name)
+            if not isinstance(part, numbers.Integral) or isinstance(part, bool):
+                raise TypeError(f"{name} must be an integer, got {type(part).__name__}")
+            # An integer from numpy or pandas is stored as a plain int.
+            object.__setattr__(self, name, int(part))
+        if not 1 <= self.month <= 12:
+            raise ValueError(f"Month {self.month} is out of range")
+        days = _days_in_month(self.year, self.month)
+        if not 1 <= self.day <= days:
+            raise ValueError(
+                f"Day {self.day} is out of range for {self.year}-{self.month:02d}"
+            )
+
+    def isoformat(self) -> str:
+        """Return the date as `1457-03-15`, `0769-01-15` or `-0450-03-15`."""
+        sign = "-" if self.year < 0 else ""
+        return f"{sign}{abs(self.year):04d}-{self.month:02d}-{self.day:02d}"
 
 
 def is_no_date(value: str) -> bool:
-    """Return True if `value` is an archival "no date" marker.
-
-    Recognises the entries in `NO_DATE_MARKERS`, the MOM ``"99999999"``
-    sentinel, and the empty string. Case- and whitespace-insensitive.
-    """
+    """Return True if `value` is empty, only whitespace, or the MOM
+    no-date value ``"99999999"``."""
     if not isinstance(value, str):
         return False
-    text = value.strip().lower()
-    return not text or text == NO_DATE_VALUE or text in NO_DATE_MARKERS
+    text = value.strip()
+    return not text or text == NO_DATE_VALUE
 
 
-# Convention parser protocol: takes a stripped, non-empty, non-no-date
-# string; returns a `Time` / `(Time, Time)` or raises `ValueError` for
-# "not my format". Both built-ins and user `extra_parsers` follow it.
-ConventionParser = Callable[[str], Union[Time, tuple[Time, Time]]]
+ConventionParser = Callable[[str], MomDate | tuple[MomDate, MomDate]]
 
-# Copied verbatim from the CEI schema's `normalizedDateValue` simple type.
-# This is the schema's `@value` attribute format, not a parser-author choice
-# — do not relax it. Note the year part has no leading-zero padding (year
-# 769 is "769", not "0769"), so pre-1000 years use a 7-character form.
+# The CEI schema's `normalizedDateValue` type, the format of `@value`.
 MOM_DATE_REGEX = re.compile(
     r"^(?P<year>-?[129]?[0-9][0-9][0-9])(?P<month>[019][0-9])(?P<day>[01239][0-9])$"
 )
 NO_DATE_VALUE = "99999999"
 
-DateInput = (
-    str
-    | datetime
-    | Time
-    | tuple[str, str]
-    | tuple[datetime, datetime]
-    | tuple[Time, Time]
-    | None
-)
-DateResult = Time | tuple[Time, Time] | None
+type SingleDate = str | date | MomDate
+type DateInput = SingleDate | tuple[SingleDate, SingleDate] | None
+DateResult = MomDate | tuple[MomDate, MomDate] | None
 
 
-def to_mom_date_value(time: Time) -> str:
-    """Convert an `astropy.Time` into a MOM-compatible date string."""
-    year, month, day = time.ymdhms[0], time.ymdhms[1], time.ymdhms[2]
-    return "{year}{month}{day}".format(
-        year=str(year).zfill(3) if year >= 0 else "-" + str(year * -1).zfill(3),
-        month=str(month).zfill(2),
-        day=str(day).zfill(2),
-    )
-
-
-def mom_date_to_time(value: str) -> Time | tuple[Time, Time]:
-    """Convert a MOM date string into an `astropy.Time` or `(Time, Time)` range.
+def to_mom_date_value(time: MomDate) -> str:
+    """Return the MOM value form of a date, such as `"14570315"`.
 
     Raises:
-        ValueError: if the value is not a syntactically valid MOM date.
+        ValueError: if the CEI schema has no value form for the year, which
+            is the case for the years 3000 to 8999, -3000 to -8999 and
+            beyond 9999 in either direction.
     """
+    year = str(abs(time.year)).zfill(3)
+    value = f"{'-' if time.year < 0 else ''}{year}{time.month:02d}{time.day:02d}"
+    if not MOM_DATE_REGEX.fullmatch(value):
+        raise ValueError(f"The year {time.year} has no MOM value form")
+    return value
+
+
+def _try_mom(value: str) -> MomDate | tuple[MomDate, MomDate]:
+    """The MOM value form. A `99` for an unknown month or day gives a range."""
     match = MOM_DATE_REGEX.search(value)
     if match is None:
         raise ValueError(
@@ -118,194 +133,99 @@ def mom_date_to_time(value: str) -> Time | tuple[Time, Time]:
             f"4-digit years must start with 1, 2, or 9 — use ISO 8601 for "
             f"others."
         )
-    year = match.group("year")
+    year = int(match.group("year"))
     month = match.group("month")
     day = match.group("day")
     if month == "99":
-        return (
-            Time({"year": int(year), "month": 1, "day": 1}, format="ymdhms", scale="ut1"),
-            Time({"year": int(year), "month": 12, "day": 31}, format="ymdhms", scale="ut1"),
-        )
+        return _full_year(year)
     if day == "99":
         return (
-            Time(
-                {"year": int(year), "month": int(month), "day": 1},
-                format="ymdhms",
-                scale="ut1",
-            ),
-            Time(
-                {
-                    "year": int(year),
-                    "month": int(month),
-                    "day": calendar.monthrange(int(year), int(month))[1],
-                },
-                format="ymdhms",
-                scale="ut1",
-            ),
+            MomDate(year, int(month), 1),
+            MomDate(year, int(month), _days_in_month(year, int(month))),
         )
-    return Time(
-        {"year": int(year), "month": int(month), "day": int(day)},
-        format="ymdhms",
-        scale="ut1",
-    )
-
-
-def extract_time(time: Time | tuple[Time, Time]) -> Time:
-    """Return the first time of a range, or the time itself if not a range."""
-    return time[0] if isinstance(time, tuple) else time
+    return MomDate(year, int(month), int(day))
 
 
 def _looks_like_iso(value: str) -> bool:
-    """Cheap pre-check: ISO dates have a hyphen at position 4."""
+    """Whether `value` has a hyphen after four year digits, as an ISO date has."""
     if not value:
         return False
     head = value.lstrip("-")
     return len(head) >= 5 and head[4] == "-"
 
 
-def string_to_time(value: str | tuple[str, str]) -> Time | tuple[Time, Time]:
-    """Parse a date string (ISO or MOM) or a 2-tuple thereof into Time(s).
-
-    Raises:
-        ValueError: if the value cannot be parsed.
-    """
-    if isinstance(value, tuple):
-        if len(value) != 2:
-            raise ValueError(f"Invalid date tuple provided: '{value}'")
-        return (
-            extract_time(string_to_time(value[0])),
-            extract_time(string_to_time(value[1])),
-        )
-    if not isinstance(value, str) or not value:
-        raise ValueError(f"Invalid date value: '{value!r}'")
-
-    if _looks_like_iso(value):
-        try:
-            return Time(value, format="isot", scale="ut1")
-        except ValueError as err:
-            raise ValueError(
-                f"Invalid ISO date string '{value}': {err}"
-            ) from err
-    return mom_date_to_time(value)
-
-
-# Built-in convention parsers. Protocol: see `ConventionParser` above.
-
+_ISO = re.compile(
+    r"(-?\d{4})-(\d{1,2})-(\d{1,2})"
+    r"(?:T(\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:\.\d+)?)?)?"
+)
 _DOTTED_DMY = re.compile(r"^(\d{1,2})\.(\d{1,2})\.(-?\d{1,4})$")
 _DOTTED_YMD = re.compile(r"^(-?\d{3,4})[.\-/](\d{1,2})[.\-/](\d{1,2})$")
 _SLASH_DMY = re.compile(r"^(\d{1,2})/(\d{1,2})/(-?\d{1,4})$")
-_DOT_DMY_HYPHEN = re.compile(r"^(\d{1,2})-(\d{1,2})-(-?\d{1,4})$")  # rare DE
+_DOT_DMY_HYPHEN = re.compile(r"^(\d{1,2})-(\d{1,2})-(-?\d{1,4})$")
 _YEAR_ONLY = re.compile(r"^(-?\d{1,4})$")
 
-# German fuzzy patterns. Vocabulary is kept tight; anything not matched
-# raises so the user notices and decides how to encode it.
-_FUZZY_AROUND = re.compile(
-    r"^(?:um|ca\.?|circa|gegen|etwa)\s+(-?\d{3,4})$", re.IGNORECASE
-)
-_FUZZY_OR = re.compile(r"^(-?\d{3,4})\s+oder\s+(-?\d{3,4})$", re.IGNORECASE)
-_FUZZY_BETWEEN = re.compile(
-    r"^zwischen\s+(-?\d{3,4})\s+und\s+(-?\d{3,4})$", re.IGNORECASE
-)
-_FUZZY_CENTURY = re.compile(
-    r"^(?:(anfang|mitte|ende)\s+(?:des\s+)?)?(\d{1,2})\.\s*"
-    r"(?:jh\.?|jahrhundert(?:s)?)$",
-    re.IGNORECASE,
-)
+
+def _full_year(year: int) -> tuple[MomDate, MomDate]:
+    return (MomDate(year, 1, 1), MomDate(year, 12, 31))
 
 
-def _full_year(year: int) -> tuple[Time, Time]:
-    return (
-        Time({"year": year, "month": 1, "day": 1}, format="ymdhms", scale="ut1"),
-        Time({"year": year, "month": 12, "day": 31}, format="ymdhms", scale="ut1"),
-    )
-
-
-def _exact(year: int, month: int, day: int) -> Time:
-    return Time(
-        {"year": year, "month": month, "day": day}, format="ymdhms", scale="ut1"
-    )
-
-
-def _try_iso(value: str) -> Time:
+def _try_iso(value: str) -> MomDate:
+    """ISO 8601 date, optionally followed by T and a time of day without a time
+    zone, which is dropped."""
     if not _looks_like_iso(value):
         raise ValueError("not iso")
+    m = _ISO.fullmatch(value)
+    if m is None:
+        raise ValueError(f"Invalid ISO date string '{value}'")
+    year, month, day, hour, minute, second = m.groups()
+    if hour is not None and (
+        int(hour) > 23 or int(minute) > 59 or int(second or 0) > 60
+    ):
+        raise ValueError(f"Invalid ISO date string '{value}': time out of range")
     try:
-        return Time(value, format="isot", scale="ut1")
+        return MomDate(int(year), int(month), int(day))
     except ValueError as err:
         raise ValueError(f"Invalid ISO date string '{value}': {err}") from err
 
 
-def _try_mom(value: str) -> Time | tuple[Time, Time]:
-    return mom_date_to_time(value)  # raises ValueError on mismatch
-
-
-def _try_dotted(value: str) -> Time:
-    """Dotted/slashed numeric formats: 15.03.1457, 1457.03.15, 15/03/1457, 15-03-1457."""
-    m = _DOTTED_DMY.match(value) or _SLASH_DMY.match(value) or _DOT_DMY_HYPHEN.match(value)
+def _try_dotted(value: str) -> MomDate:
+    """Dotted/slashed numeric: 15.03.1457, 1457.03.15, 15/03/1457, 15-03-1457."""
+    m = (
+        _DOTTED_DMY.match(value)
+        or _SLASH_DMY.match(value)
+        or _DOT_DMY_HYPHEN.match(value)
+    )
     if m:
         day, month, year = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        return _exact(year, month, day)
+        return MomDate(year, month, day)
     m = _DOTTED_YMD.match(value)
     if m:
         year, month, day = int(m.group(1)), int(m.group(2)), int(m.group(3))
-        return _exact(year, month, day)
+        return MomDate(year, month, day)
     raise ValueError("not dotted")
 
 
-def _try_year(value: str) -> tuple[Time, Time]:
-    """Bare 1-4 digit year → full-year range."""
+def _try_year(value: str) -> tuple[MomDate, MomDate]:
+    """A bare year of one to four digits, as a full-year range."""
     m = _YEAR_ONLY.match(value)
     if not m:
         raise ValueError("not year")
     return _full_year(int(m.group(1)))
 
 
-def _try_german_fuzzy(value: str) -> tuple[Time, Time]:
-    """German archival hedging: 'um 1457', 'zwischen X und Y', '15. Jh.', etc."""
-    m = _FUZZY_AROUND.match(value)
-    if m:
-        return _full_year(int(m.group(1)))
-    m = _FUZZY_OR.match(value)
-    if m:
-        a, b = sorted((int(m.group(1)), int(m.group(2))))
-        return (_full_year(a)[0], _full_year(b)[1])
-    m = _FUZZY_BETWEEN.match(value)
-    if m:
-        a, b = sorted((int(m.group(1)), int(m.group(2))))
-        return (_full_year(a)[0], _full_year(b)[1])
-    m = _FUZZY_CENTURY.match(value)
-    if m:
-        qualifier, century_str = m.group(1), m.group(2)
-        century = int(century_str)
-        first_year = (century - 1) * 100 + 1
-        last_year = century * 100
-        if qualifier:
-            q = qualifier.lower()
-            if q == "anfang":
-                last_year = first_year + 32  # ~first third
-            elif q == "mitte":
-                first_year = first_year + 33
-                last_year = first_year + 33
-            elif q == "ende":
-                first_year = last_year - 32
-        return (_full_year(first_year)[0], _full_year(last_year)[1])
-    raise ValueError("not german fuzzy")
-
-
-# Built-in parsers in priority order. The parser tries them top-to-bottom
-# and returns the first match. The labels are only used in error messages.
+# Built-in parsers in priority order. The labels are only used in error
+# messages.
 _BUILTIN_PARSERS: tuple[tuple[str, ConventionParser], ...] = (
     ("iso", _try_iso),
     ("mom", _try_mom),
     ("dotted", _try_dotted),
     ("year", _try_year),
-    ("german_fuzzy", _try_german_fuzzy),
 )
 
 
 def _parse_string(
     value: str, extra_parsers: tuple[ConventionParser, ...]
-) -> Time | tuple[Time, Time]:
+) -> MomDate | tuple[MomDate, MomDate]:
     text = value.strip()
     if not text:
         raise ValueError("empty date string")
@@ -318,12 +238,57 @@ def _parse_string(
     for parser in extra_parsers:
         label = getattr(parser, "__name__", None) or repr(parser)
         try:
-            return parser(text)
+            result = parser(text)
         except ValueError as err:
             errors.append(f"{label}: {err}")
+            continue
+        return _checked(result, label)
+    raise ValueError(f"Cannot parse date {value!r}. Tried: {'; '.join(errors)}")
+
+
+def _checked(result: object, label: str) -> MomDate | tuple[MomDate, MomDate]:
+    """The result of an extra parser, if it's a `MomDate` or a range."""
+    if isinstance(result, MomDate):
+        return result
+    if (
+        isinstance(result, tuple)
+        and len(result) == 2
+        and isinstance(result[0], MomDate)
+        and isinstance(result[1], MomDate)
+    ):
+        return _range(result[0], result[1])
     raise ValueError(
-        f"Cannot parse date {value!r}. Tried: {'; '.join(errors)}"
+        f"{label} returned {result!r}, not a MomDate or a (start, end) range"
     )
+
+
+def _parse_single(
+    value: SingleDate | None, extras: tuple[ConventionParser, ...]
+) -> DateResult:
+    if value is None:
+        return None
+    if isinstance(value, MomDate):
+        return value
+    if isinstance(value, date):
+        return MomDate(value.year, value.month, value.day)
+    if isinstance(value, str):
+        return None if is_no_date(value) else _parse_string(value, extras)
+    raise TypeError(f"expected text, a date or a MomDate, got {type(value).__name__}")
+
+
+def _range(
+    start: MomDate | tuple[MomDate, MomDate], end: MomDate | tuple[MomDate, MomDate]
+) -> MomDate | tuple[MomDate, MomDate]:
+    """An explicit range from the first day of `start` to the last day of
+    `end`, or a single date if both are the same day."""
+    first = start[0] if isinstance(start, tuple) else start
+    last = end[1] if isinstance(end, tuple) else end
+    if first > last:
+        raise ValueError(
+            f"A date range must not end before it starts: "
+            f"{first.isoformat()} – {last.isoformat()}"
+        )
+    return first if first == last else (first, last)
 
 
 def parse(
@@ -331,80 +296,74 @@ def parse(
     *,
     extra_parsers: tuple[ConventionParser, ...] | list[ConventionParser] = (),
 ) -> DateResult:
-    """Parse a date input into a `Time`, `(Time, Time)` range, or `None`.
+    """Parse a date input into a `MomDate`, a `(MomDate, MomDate)` range or `None`.
 
-    Real archival data routinely mixes complete dates with partial dates
-    and "no date" markers. `parse` handles all three: it returns a `Time`
-    for exact dates, a `(Time, Time)` range for partial ones (unknown
-    day, year-only, "um 1457", century, etc.), and `None` for explicit
-    no-date markers like `sine dato`. The built-in formats are tried in
-    order and the first match wins.
+    `parse` returns a `MomDate` for an exact date, a range for a period
+    such as a year or a month with an unknown day, and `None` for no date.
+    It reads only forms that don't depend on a language. Expressions in a
+    natural language ("um 1457", "15. Jh.", "20. September 1246") need a
+    parser in `extra_parsers`, and a project maps its no-date markers
+    ("sine dato", "o. D.") to `None` before calling `parse`.
 
-    Pass-through / conversion:
+    Inputs other than text:
 
-    * `None` → `None`.
-    * `astropy.time.Time` → returned as-is.
-    * `datetime.datetime` → `Time` (UT1 scale).
-    * `(from, to)` 2-tuple → explicit range. Both ends are taken
-      literally; the MOM ``99`` expansion does not apply. If both ends
-      are no-date markers the result is `None`.
+    * `None` stays `None`, and a `MomDate` is returned unchanged.
+    * A `datetime.date` or `datetime.datetime` becomes a `MomDate`, and
+      the time of day is dropped.
+    * A `(start, end)` tuple of single forms is an explicit range from
+      the first day of `start` to the last day of `end`, so
+      ``("1457", "1460")`` covers 1457-01-01 to 1460-12-31. A range whose
+      ends are the same day becomes that single `MomDate`, and a range
+      that ends before it starts raises `ValueError`. If both ends are no
+      date, the result is `None`, and if only one is, `parse` raises
+      `ValueError`.
 
-    No-date markers (return `None`): empty string, MOM ``"99999999"``,
-    and the entries in `NO_DATE_MARKERS` (Latin / German / English
-    archival shorthands). See also `is_no_date()`.
+    An empty or whitespace-only string and the MOM value ``"99999999"``
+    mean no date, as `is_no_date` checks.
 
-    String formats, tried in order:
+    Text forms, tried in this order until one matches:
 
-    1. **ISO 8601** — ``"1457-03-15"``.
-    2. **MOM numeric** ``YYYYMMDD`` — ``"14570315"`` (exact),
-       ``"14570399"`` (full-month range), ``"14579999"`` (full-year
-       range). Schema-defined; 4-digit years must start with 1, 2, or 9.
-    3. **Dotted/slashed numeric** — ``"15.03.1457"``, ``"1457.03.15"``,
-       ``"15/03/1457"``, ``"15-03-1457"``.
-    4. **Bare year** — ``"1457"`` → full-year range.
-    5. **German archival fuzzy** — ``"um|ca.|circa|gegen|etwa 1457"``
-       (full-year range), ``"1457 oder 1458"``, ``"zwischen X und Y"``,
-       ``"15. Jahrhundert"`` / ``"15. Jh."``,
-       ``"Anfang|Mitte|Ende des 15. Jahrhunderts"``.
+    1. An ISO 8601 date, ``"1457-03-15"``, optionally followed by ``T``
+       and a time of day without a time zone (``"1457-03-15T12:00:00"``),
+       which is dropped.
+    2. The MOM value form ``YYYYMMDD``: ``"14570315"`` for a day,
+       ``"14570399"`` for a month and ``"14579999"`` for a year. A
+       four-digit year starts with 1, 2 or 9, as the CEI schema requires.
+    3. Numeric dates with dots, slashes or hyphens: ``"15.03.1457"``,
+       ``"1457.03.15"``, ``"15/03/1457"``, ``"15-03-1457"``.
+    4. A bare year such as ``"1457"``, as a full-year range.
 
-    To handle a dialect the built-ins don't cover, pass a callable via
-    `extra_parsers`. It receives a stripped, non-empty, non-no-date
-    string and must return a `Time` / `(Time, Time)` or raise
-    `ValueError` for "not my format". Extra parsers run after the
-    built-ins::
+    A callable in `extra_parsers` handles a form the built-in parsers
+    don't cover. It runs after them and receives a stripped, non-empty
+    string that isn't a no-date value. It returns a `MomDate` or a
+    `(start, end)` range, or raises `ValueError` if the string isn't its
+    format::
 
-        def julian_day(text: str) -> Time:
-            if not text.startswith("JD"):
-                raise ValueError("not a julian-day string")
-            return Time(float(text[2:]), format="jd", scale="ut1")
+        def anno_domini(text: str) -> tuple[MomDate, MomDate]:
+            m = re.fullmatch(r"anno domini (\\d{3,4})", text, re.IGNORECASE)
+            if m is None:
+                raise ValueError("not an 'anno domini' year")
+            year = int(m.group(1))
+            return (MomDate(year, 1, 1), MomDate(year, 12, 31))
 
-        dates.parse("JD2451545.0", extra_parsers=[julian_day])
+        dates.parse("anno domini 1457", extra_parsers=[anno_domini])
 
-    Raises `ValueError` if no parser matches. The message lists every
-    parser that was tried and why it rejected the input.
+    Raises:
+        TypeError: if `value` or an end of a range isn't text, a `date` or
+            a `MomDate`.
+        ValueError: if no parser matches, with every parser tried and its
+            reason, or if an extra parser returns something other than a
+            `MomDate` or a range that doesn't end before it starts.
     """
-    if value is None:
-        return None
-    if isinstance(value, Time):
-        return value
-    if isinstance(value, datetime):
-        return Time(value, scale="ut1")
     extras = tuple(extra_parsers)
-    if isinstance(value, str):
-        if is_no_date(value):
-            return None
-        return _parse_string(value, extras)
-    if isinstance(value, tuple) and len(value) == 2:
-        a, b = value
-        if isinstance(a, datetime) and isinstance(b, datetime):
-            return (Time(a, scale="ut1"), Time(b, scale="ut1"))
-        if isinstance(a, Time) and isinstance(b, Time):
-            return (a, b)
-        if isinstance(a, str) and isinstance(b, str):
-            if is_no_date(a) and is_no_date(b):
-                return None
-            return (
-                extract_time(_parse_string(a, extras)),
-                extract_time(_parse_string(b, extras)),
-            )
-    raise ValueError(f"Cannot parse date value: {value!r}")
+    if not isinstance(value, tuple):
+        return _parse_single(value, extras)
+    if len(value) != 2:
+        raise ValueError(f"A date range needs exactly two ends: {value!r}")
+    start = _parse_single(value[0], extras)
+    end = _parse_single(value[1], extras)
+    if start is None and end is None:
+        return None
+    if start is None or end is None:
+        raise ValueError(f"A date range needs both ends or neither: {value!r}")
+    return _range(start, end)

@@ -6,11 +6,161 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0]
+
+[UPGRADING.md](UPGRADING.md) describes the changes a conversion script for 0.4
+needs.
+
+### Added
+
+- `Validator(refresh=True)` fetches the current CEI schema and replaces the
+  cached copy.
+- `to_cei` exports `CEI`, the builder for CEI elements, and `CEI_NS`.
+- Element arguments for content that CEI allows to be richer than text:
+  `comments` (`cei:p`), `footnotes` (`cei:note`), `chancellary_remarks`
+  (`cei:nota`), `abstract_sources`, `transcription_sources` and the
+  `literature*` arguments (`cei:bibl`), `condition` (`cei:condition`),
+  `dimensions` (`cei:dimensions`) and `graphic_urls` (`cei:figure`).
+- `Charter(provenance=...)` writes `cei:front/cei:provenance`, as text or a
+  `cei:provenance` element.
+- `Charter(archive_signature=...)` sets the shelf mark in
+  `cei:archIdentifier/cei:idno`, and `Charter(archive_internal_id=...)` its
+  `@n`.
+- `Charter(seal_description=...)` sets the text of `cei:sealDesc`, or takes a
+  complete `cei:sealDesc` element.
+- `Seal(description=...)` writes free text at the start of `cei:seal`.
+- `Seal(legend=...)` accepts `cei:legend` elements and mixes them with texts and
+  `Legend` entries.
+- `Charter(text_witnesses=...)` writes the textual witnesses as `cei:witness`
+  entries in `cei:witListPar`, as texts, `TextWitness` entries or `cei:witness`
+  elements.
+- `Legend(text, place=None)` and `TextWitness(text, tradition=None)` describe a
+  seal legend with its place and a textual witness with its form of tradition.
+- `dates.parse()` and `Charter(date_value=...)` accept `datetime.date`.
+- `to_cei.mom_id()` returns a charter id in the form Monasterium's import gives
+  it.
 
 ### Changed
 
 - Dependency updates.
+- BREAKING: Dates are `to_cei.dates.MomDate` (year, month, day) instead of
+  `astropy.time.Time`. `dates.parse()` returns `MomDate` or
+  `(MomDate, MomDate)`, `parse()` and `Charter(date_value=...)` accept
+  `MomDate`, and `extra_parsers` return `MomDate`.
+- Generated date text reads `1457-03-15` or `1457-01-01 – 1457-12-31` instead of
+  `+01457-03-15` or `+01457-01-01 - +01457-12-31`, and `MomDate.isoformat()`
+  returns the same form.
+- BREAKING: `Charter(seals=...)` takes only the individual seals. A text entry
+  becomes a `cei:seal` with that text, also as a single string.
+- BREAKING: `Seal(sigillant=...)` takes text or a complete `cei:sigillant`
+  element instead of a `cei:persName` or `cei:orgName`.
+- BREAKING: Repeatable arguments, `issuers`, `seals` and `Seal(legend=...)`
+  among them, take one entry or a sequence with texts and elements mixed, and
+  their attributes always return a list. `to_xml()` checks entries added to such
+  a list in place, like an assignment does.
+- `CharterGroup` takes one `Charter` or a sequence, and its `name` and
+  `charters` raise `TypeError` with the argument's name for a wrong type.
+- A passed element is written as a copy and never moved or changed. A
+  `cei:persName` in `witnesses` gets `@type="Zeuge"` on its copy, and one with
+  another `@type` raises `ValueError`.
+- An XML element in `date` together with a `date_value` raises in `to_xml()`
+  instead of when `date_value` is set, like `abstract` with `issuers` or
+  `recipient`.
+- `to_string()` and `to_file()` write the XML as `to_xml()` builds it, without
+  indentation. Before, they pretty-printed it and added whitespace inside
+  content elements that hold only child elements.
+- The parts of `cei:seal`, `cei:sealDesc` and `cei:archIdentifier` are separated
+  by a space where their texts would otherwise run together.
+- BREAKING: An explicit `(start, end)` range in `dates.parse()` runs to the last
+  day of its end, so `("1457", "1460")` ends on 1460-12-31 instead of
+  1460-01-01. It takes mixed forms such as a string and a `datetime`, and it
+  raises `ValueError` if it ends before it starts or has only one no-date end.
+- The CEI schema is cached as the plain file `~/.cache/to-cei/cei.xsd`, and
+  importing `to_cei` no longer creates the cache directory.
+- BREAKING: `CacheFetchError` moved from `to_cei.filecache` to
+  `to_cei.validator`.
+- The license is `LGPL-3.0-or-later` instead of `GPL-3.0`.
+- BREAKING: `id_norm`, and with it `@id` and the file name of
+  `Charter.to_file()`, follows Monasterium's import rules (`mom_id()`) instead
+  of percent-encoding, also for an `id_norm` passed explicitly. "1307 II 22"
+  becomes `1307_II_22` instead of `1307%20II%2022`, and "K//1, n° 1" becomes
+  `K||1_n°_1`. A percent-encoded id lost its `%` signs in Monasterium's import,
+  so "1307 II 22" became `130720II2022` there, and a `/` made
+  `Charter.to_file()` write into a subfolder.
+- Issuers and recipient follow the abstract text as Monasterium's Excel import
+  writes them, the issuers after " Aussteller: " and separated by "; ", the
+  recipient after " Empfänger: ".
+- BREAKING: `CharterGroup.to_xml()`, `to_string()` and `to_file()` raise
+  `ValueError` if several charters have the same `id_norm`.
+- BREAKING: All arguments of `Charter` after `id_text`, and all arguments of
+  `Seal`, are keyword-only.
+- BREAKING: `Seal(legend=...)` takes `Legend("text", place="recto")` instead of
+  a `("recto", "text")` tuple. A tuple is now a sequence of legends.
+- BREAKING: Arguments check their types on assignment and raise `TypeError` with
+  the argument's name. An element in a text-only argument such as `archive`, a
+  non-text `external_link` and a non-text `id_text` used to be dropped or
+  emptied silently.
+- BREAKING: `dates.parse()` raises `TypeError` instead of `ValueError` for a
+  value that isn't text, a `date`, a `MomDate` or a tuple of them.
+- BREAKING: `Charter(date_value=...)` raises `ValueError` for a year that has no
+  MOM value form (3000 to 8999, -3000 to -8999, and beyond 9999 in either
+  direction), and `dates.to_mom_date_value()` raises for such a date. Before,
+  the value was written and failed schema validation.
+- A parser in `extra_parsers` must return a `MomDate` or a range that doesn't
+  end before it starts, and `parse()` raises `ValueError` otherwise. A range
+  with equal ends becomes a single date.
+- A charter without a date reads "Sine dato" instead of "No date".
+- `Seal` writes its parts in the order the CEI schema declares them: sigillant,
+  legend, dimensions, material and condition. Before, they were in alphabetical
+  order, with the sigillant last.
+- A `TextWitness` with a form of tradition writes a space between
+  `cei:traditioForm` and the text, so it reads like Monasterium's Excel import.
+- Development uses the type stubs of `types-lxml` instead of `lxml-stubs`, so
+  pyright also checks the code that builds elements with `CEI`.
+
+### Removed
+
+- BREAKING: The `astropy` dependency and `astropy.time.Time` input.
+- BREAKING: `dates.string_to_time()`, `dates.extract_time()` and
+  `dates.mom_date_to_time()`. `dates.parse()` covers all three.
+- BREAKING: The type aliases `to_cei.charter.Date` and
+  `to_cei.charter.DateValue`. `to_cei.dates.DateInput` replaces them.
+- `Seal.to_string()` and `Seal.to_file()`. Both always raised `TypeError`.
+  `etree.tostring(seal.to_xml())` serializes a seal.
+- BREAKING: The `to_cei.filecache` module with `FileCache`.
+- `to_cei.config.XSI_NS`, which nothing used.
+- `docs/fields.md`. The docstrings document every argument.
+- BREAKING: The German expressions in `dates.parse()` ("um 1457", "1457 oder
+  1458", "zwischen X und Y", "15. Jahrhundert", "Anfang des 15. Jahrhunderts"
+  and their variants) and `dates.NO_DATE_MARKERS`. `parse()` reads only forms
+  that don't depend on a language, and `is_no_date()` recognizes only empty or
+  whitespace-only strings and `"99999999"`.
+
+### Fixed
+
+- 29 February in Julian leap years such as 1300 was rejected.
+- Years from -9000 to -9999 were rejected although the CEI schema allows them.
+- Setting `date` to an XML element after `date_value` silently dropped the
+  value.
+- An empty `Seal()` next to a `cei:sealDesc` element raised, although it writes
+  nothing.
+- An interrupted download could leave a cut-off `cei.xsd` in the cache that was
+  never fetched again.
+- An explicit range with equal ends was written as a `cei:dateRange` instead of
+  a `cei:date`.
+- A second `to_xml()` call removed passed elements from the result of the first
+  call.
+- `issuers` and `recipient` were dropped without an `abstract` text.
+- The charter identifier appeared with the same `@id` in two `cei:idno`
+  elements.
+- Without an abstract text, the abstract started with a space before
+  "Aussteller:" or "Empfänger:".
+- `to_file()` wrote into the current directory for a folder given as a path type
+  other than `str` or `Path`, and failed for an empty string.
+- A schema cache that couldn't be read or written stopped `Validator()`,
+  although the schema had been fetched.
+- The package metadata named both GPL-3.0 and LGPL-3.0, and the deprecated
+  license table would have stopped builds from 2027-02-18.
 
 ## [0.4.4]
 
@@ -85,9 +235,9 @@ fixes, one intentional relaxation of when constraint errors are raised, and a
 widening of `Charter(date_value=...)` to accept archival "no date" markers — see
 _Changed_.
 
-> ⚠ **Breaking:** the long-deprecated `Charter(issuer=...)` (singular) kwarg has
-> been removed. Migration is one character: `issuer=x` → `issuers=x`, same
-> accepted shapes. See _Removed_.
+> BREAKING: the long-deprecated `Charter(issuer=...)` (singular) kwarg has been
+> removed. Migration is one character: `issuer=x` → `issuers=x`, same accepted
+> shapes. See _Removed_.
 
 ### Added
 
@@ -215,13 +365,13 @@ _Changed_.
 
 ### Removed
 
-- ⚠ **BREAKING:** `Charter(issuer=...)` (singular, deprecated since the
-  introduction of `issuers` plural). Removing a previously-deprecated public
-  kwarg is a public-API removal — strictly a major bump under SemVer; this `0.x`
-  release exercises the looser `0.x` allowance to ship it in a minor. Migration
-  is one character: `issuer=x` → `issuers=x`, same accepted shapes. The
-  deprecation warning that fired on every use is gone, and the test suite now
-  runs warning-free.
+- BREAKING: `Charter(issuer=...)` (singular, deprecated since the introduction
+  of `issuers` plural). Removing a previously-deprecated public kwarg is a
+  public-API removal — strictly a major bump under SemVer; this `0.x` release
+  exercises the looser `0.x` allowance to ship it in a minor. Migration is one
+  character: `issuer=x` → `issuers=x`, same accepted shapes. The deprecation
+  warning that fired on every use is gone, and the test suite now runs
+  warning-free.
 - `setup.py` and `requirements.txt` (replaced by `pyproject.toml`).
 - The unused `SIMPLE_URL_REGEX` constant from `to_cei.charter`.
 - The single-entry `Schema` enum from `to_cei.validator`.

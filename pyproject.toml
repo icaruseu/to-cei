@@ -1,14 +1,14 @@
 [project]
 name = "to_cei"
-version = "0.4.4"
-description = "to-CEI"
+version = "0.5.0"
+description = "Build CEI XML for Monasterium.net from Python data"
 readme = "README.md"
 requires-python = ">=3.13"
-license = { text = "GPL-3.0" }
+license = "LGPL-3.0-or-later"
+license-files = ["LICENSE", "COPYING.LESSER"]
 authors = [{ name = "Daniel Jeller", email = "it@icar-us.eu" }]
 classifiers = [
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
@@ -16,7 +16,6 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "astropy",
     "lxml",
     "requests",
     "xmlschema",
@@ -28,15 +27,25 @@ Homepage = "https://github.com/icaruseu/to-cei"
 [dependency-groups]
 dev = [
     "build",
-    "lxml-stubs",
+    "types-lxml",
+    "pyright[nodejs]",
     "pytest",
+    "ruff",
     "twine",
 ]
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["to_cei"]
 include-package-data = true
+
+[tool.ruff.lint.per-file-ignores]
+# Tests pass naive datetimes because callers do, and only the date is used.
+"test/**" = ["DTZ001"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

@@ -19,3 +19,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Run tests
         run: uv run --isolated pytest
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.13"
+      - name: Check formatting
+        run: uv run ruff format --check
+      - name: Lint
+        run: uv run ruff check
+      - name: Type-check
+        run: uv run pyright

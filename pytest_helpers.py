@@ -1,29 +1,24 @@
-from typing import Any, List
+from typing import cast
 
 from lxml import etree
 
 from to_cei.config import CHARTER_NSS
+from to_cei.seal import Seal
 from to_cei.xml_assembler import XmlAssembler
 
 
-def e(value: Any) -> List[etree._Element]:
-    """Makes sure that the provided value is a List of etree._Elements. Raises an exception otherwise."""
-    if not isinstance(value, List):
-        raise Exception("Not a list")
-    list: List[etree._Element] = value
-    return list
-
-
-def xp(assembler: XmlAssembler, xpath: str) -> List[etree._Element]:
-    """Evaluates an xpath on the charters xml content. Raises an exception if the provided assembler doesn't produce XML."""
+def xp(assembler: XmlAssembler | Seal, xpath: str) -> list[etree._Element]:
+    """Evaluates `xpath` on the XML of `assembler`."""
     xml = assembler.to_xml()
-    if xml is None:
-        raise Exception("XML is empty")
-    return e(xml.xpath(xpath, namespaces=CHARTER_NSS))
+    assert xml is not None
+    elements = xml.xpath(xpath, namespaces=CHARTER_NSS)
+    assert isinstance(elements, list)
+    assert all(isinstance(element, etree._Element) for element in elements)
+    return cast(list[etree._Element], elements)
 
 
-def xps(assembler: XmlAssembler, xpath: str) -> etree._Element:
-    """Evaluates an xpath on the charters xml content, asserts that it only has a single element and returns the element."""
-    list = xp(assembler, xpath)
-    assert len(list) == 1
-    return list[0]
+def xps(assembler: XmlAssembler | Seal, xpath: str) -> etree._Element:
+    """Like `xp`, but asserts a single match and returns it."""
+    elements = xp(assembler, xpath)
+    assert len(elements) == 1
+    return elements[0]

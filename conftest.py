@@ -1,6 +1,18 @@
 import pytest
 from lxml import etree
 
+from to_cei import validator
+
+
+@pytest.fixture(autouse=True, scope="session")
+def live_schema(tmp_path_factory):
+    """Tests validate against the schema the code fetches today. The cache
+    is new for every run, so neither a stale copy nor the user's cache in
+    the home folder is involved."""
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(validator, "_CACHE_DIR", tmp_path_factory.mktemp("schema"))
+        yield
+
 
 @pytest.fixture
 def valid_cei():

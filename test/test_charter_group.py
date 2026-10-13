@@ -5,7 +5,7 @@ from lxml import etree
 
 from to_cei.charter import Charter
 from to_cei.charter_group import CharterGroup
-from to_cei.config import SCHEMA_LOCATION, SCHEMA_LOCATION_QNAME
+from to_cei.config import CEI, SCHEMA_LOCATION, SCHEMA_LOCATION_QNAME
 from to_cei.validator import Validator
 
 
@@ -61,3 +61,45 @@ def test_filename_explicit_override(tmp_path):
     group = CharterGroup("Whatever", [Charter("1")])
     group.to_file(tmp_path, filename="custom_name")
     assert pathlib.Path(tmp_path, "custom_name.cei.group.xml").is_file()
+
+
+def test_raises_exception_for_duplicate_id_norm():
+    group = CharterGroup(
+        "Série K",
+        [
+            Charter("K//5, n° 4/2"),
+            Charter("K//5, n° 4/2"),
+            Charter("K//5, n° 4/2", id_norm="K//5, n° 4/2 b"),
+        ],
+    )
+    with pytest.raises(ValueError, match=r"K\|\|5_n°_4\|2$"):
+        group.to_xml()
+
+
+def test_duplicate_check_compares_mom_ids():
+    group = CharterGroup("Gruppe", [Charter("1307 II 22"), Charter("1307_II_22")])
+    with pytest.raises(ValueError, match="1307_II_22"):
+        group.to_xml()
+
+
+@pytest.mark.parametrize("name", [None, 5, CEI.title("Gruppe")])
+def test_raises_type_error_for_a_name_that_is_not_text(name):
+    with pytest.raises(TypeError, match="name"):
+        CharterGroup(name)
+
+
+def test_accepts_a_single_charter():
+    assert len(CharterGroup("Gruppe", Charter("1")).charters) == 1
+
+
+@pytest.mark.parametrize("charters", ["1", ["1"], [Charter("1"), None]])
+def test_raises_type_error_for_entries_that_are_not_charters(charters):
+    with pytest.raises(TypeError, match="charters"):
+        CharterGroup("Gruppe", charters)
+
+
+def test_checks_charters_appended_in_place():
+    group = CharterGroup("Gruppe", Charter("1"))
+    group.charters.append("2")  # pyright: ignore[reportArgumentType]
+    with pytest.raises(TypeError, match="charters"):
+        group.to_xml()
