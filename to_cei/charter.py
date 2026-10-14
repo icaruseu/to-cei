@@ -30,7 +30,7 @@ from to_cei.xml_assembler import XmlAssembler
 NO_DATE_TEXT = "Sine dato"
 WITNESS_TYPE = "Zeuge"
 
-# MOM's import rules for charter ids, applied in this order. Its rule for
+# Monasterium's rules for charter ids, applied in this order. Its rule for
 # ";" checks ":" a second time, so ";" stays, and this copy keeps that.
 _MOM_ID_REPLACEMENTS = ((". ", " "), (", ", " "), (" (", "("), (" - ", "-"))
 _MOM_ID_TRANSLATION = str.maketrans(
@@ -73,16 +73,11 @@ type TextWitnessEntry = str | TextWitness | etree._Element
 
 
 def mom_id(text: str) -> str:
-    """Return `text` in the form Monasterium gives a charter id.
+    """Return `text` cleaned by Monasterium's rules for charter ids.
 
-    Monasterium's import cleans every charter id with fixed rules and
-    builds the charter's Atom id from the result: ". " and ", " become a
-    space, " (" becomes "(" and " - " becomes "-", spaces become "_" and
-    "/" becomes "|", and "?", "=", ":", "%", "#" and "$" are removed. An id
-    that ends up empty becomes "0000". An id in this form stays unchanged
-    on import, and it is the `@id` to use where data reaches the database
-    without the import, for example as an Atom entry. The Atom id holds it
-    percent-encoded.
+    ". " and ", " become a space, " (" becomes "(" and " - " becomes "-",
+    spaces become "_" and "/" becomes "|", and "?", "=", ":", "%", "#" and
+    "$" are removed. An id that ends up empty becomes "0000".
     """
     for old, new in _MOM_ID_REPLACEMENTS:
         text = text.replace(old, new)
@@ -316,9 +311,6 @@ class Charter(XmlAssembler):
             graphic_urls: Images, each as a URL written to
                 `cei:figure/cei:graphic/@url` or a complete `cei:figure`
                 element. A URL can be complete, a path or a bare filename.
-                Monasterium joins a path or filename with the `base_url` of
-                the fond or collection at display time, so it only resolves if
-                that is set up.
             id_norm: The identifier for `@id` and the file name, in the form
                 `mom_id` gives it. Defaults to `id_text`.
             id_old: An earlier shelf mark, as `cei:altIdentifier[@type="old"]`.
@@ -332,7 +324,7 @@ class Charter(XmlAssembler):
             issued_place: The place of issue, as text or a `cei:placeName`
                 element.
             issuers: The issuers, as `cei:issuer` entries after the abstract
-                text. As MOM's Excel import writes them, the text
+                text. Following Monasterium's convention, the text
                 " Aussteller: " introduces them, and "; " separates them.
             language: The charter's language, as `cei:lang_MOM`.
             literature: Literature, as `cei:bibl` entries in `cei:listBibl`.
@@ -367,7 +359,7 @@ class Charter(XmlAssembler):
             transcription: The full text, as text or a `cei:tenor` element.
             transcription_sources: Sources of the transcription, as
                 `cei:bibl` entries in `cei:sourceDescVolltext`.
-            witnesses: Witnesses for MOM's witness index, as
+            witnesses: Witnesses. Following Monasterium's convention, they are
                 `cei:persName[@type="Zeuge"]` entries in `cei:back`. A
                 `cei:persName` element gets `@type="Zeuge"` on its copy and
                 must not have another `@type`. Witnesses within the text are
@@ -660,8 +652,7 @@ class Charter(XmlAssembler):
     ):
         """Writes the charter to `<id_norm>.cei.xml`.
 
-        The name matches the one Monasterium derives from the charter's id.
-        It can contain characters that Windows doesn't allow in file names
+        The name can contain characters that Windows doesn't allow in file names
         (`|`, `*`, `<`, `>`, `"`, `\\`), so writing such a charter fails there.
 
         Args:

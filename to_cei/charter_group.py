@@ -41,7 +41,7 @@ class CharterGroup(XmlAssembler):
     def __init__(
         self, name: str, charters: Charter | Sequence[Charter] | None = None
     ) -> None:
-        """A group of charters, written as one `cei:cei` file for import.
+        """A group of charters, written as one `cei:cei` document.
 
         Args:
             name: The name of the charter group. It must not be empty.

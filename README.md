@@ -1,10 +1,10 @@
 # to-cei
 
-to-cei builds [CEI](http://www.cei.lmu.de/) (Charter Encoding Initiative) XML
-for imports into [Monasterium.net](https://www.monasterium.net) from plain
-Python values. A conversion script reads a source such as a spreadsheet or an
-archival database export, creates a `Charter` for each charter and writes them
-as a `CharterGroup`, the form Monasterium's import takes.
+to-cei makes it simple to build valid [CEI](http://www.cei.lmu.de/) (Charter
+Encoding Initiative) XML from plain Python values. A `Charter` becomes a
+`cei:text`, and a `CharterGroup` collects charters in one `cei:cei` document.
+Where CEI leaves a choice, to-cei follows conventions established in
+[Monasterium.net](https://www.monasterium.net).
 
 It requires Python 3.13 or newer.
 
@@ -114,13 +114,12 @@ to-cei reads the MOM value forms with `99` for an unknown day or month as a
 short way to enter a period. It writes every date as calendar days, because a
 value with `99` names no day. A single day becomes `cei:date[@value]`, and a
 period becomes `cei:dateRange` with its first and last day. Each charter gets
-exactly one `cei:date` or one `cei:dateRange`, because Monasterium's views
-choose between them by different rules. CEI allows several dates per charter and
-values with `99`, and Monasterium's database holds dates in both forms.
+exactly one `cei:date` or one `cei:dateRange`, although CEI allows several dates
+per charter and values with `99`.
 
 Without a `date` text, to-cei writes the value as the text, for example
 `1457-03-15` or `1457-01-01 – 1457-12-31`. A charter without a date gets
-`cei:date[@value="99999999"]`, the value Monasterium uses for an unknown date,
+`cei:date[@value="99999999"]`, Monasterium's convention for an unknown date,
 with the text "Sine dato", although CEI would allow leaving the date out. A date
 text without a value gets the same `@value`.
 
@@ -132,28 +131,22 @@ years 0, -4 and -8 are leap years.
 A `cei:date` or `cei:dateRange` element passed as `date` is written as given, so
 these rules cover only what to-cei builds from `date_value`.
 
-### Matching Monasterium's Excel import
+### Monasterium conventions
 
-Where Monasterium's Excel import gives a field a fixed form in CEI, to-cei
-writes the same form, so a charter with the same content looks the same in
-Monasterium whichever route it took:
+to-cei follows these conventions:
 
 - Issuers and recipient follow the abstract text, the issuers after
   `" Aussteller: "` and separated by `"; "`, the recipient after
   `" Empfänger: "`.
 - A space separates the form of tradition of a textual witness from its text.
-- `witnesses` writes Monasterium's witness index, `cei:persName[@type="Zeuge"]`
-  in `cei:back`.
-
-The spreadsheet's input conventions don't apply. Repeatable values are Python
-sequences, and to-cei never splits text, so a "$$" in a value stays in the text.
+- `witnesses` writes `cei:persName[@type="Zeuge"]` entries in `cei:back`.
 
 Witnesses are the one place where to-cei adds to the copy of a passed element. A
 passed `cei:persName` gets `@type="Zeuge"` on its copy, and an element with
 another `@type` raises `ValueError`. Witnesses within the text are marked up
 with `cei:testis` in an `abstract` or `transcription` element.
 
-## Writing files for import
+## Writing files
 
 ### Ids and file names
 
@@ -162,22 +155,19 @@ with `cei:testis` in an `abstract` or `transcription` element.
 `archive_signature` sets one.
 
 `id_norm` defaults to `id_text`, and to-cei cleans it with `mom_id`, which
-applies the rules of Monasterium's import. These rules keep a ";" and turn an id
-that ends up empty into "0000". The result is the `@id` of `cei:body/cei:idno`
-and the charter's file name `<id_norm>.cei.xml`, and the import leaves it
-unchanged. The charter's Atom id in Monasterium holds it percent-encoded, so
-`Ötztal_1` appears there as `%C3%96tztal_1`.
+applies Monasterium's rules for charter ids. These rules keep a ";" and turn an
+id that ends up empty into "0000". The result is the `@id` of
+`cei:body/cei:idno` and the charter's file name `<id_norm>.cei.xml`.
 
 A cleaned id can contain characters that Windows doesn't allow in file names,
 such as the `|` that replaces a `/`, so `to_file()` fails there for such a
 charter.
 
 `CharterGroup.to_xml()` raises `ValueError` if two charters have the same
-`id_norm`, because the import would number them and an Atom entry would
-overwrite the other. The group's file name comes from its name, folded to ASCII
-and lowercased. Each run of characters other than letters, digits and `_`
-becomes `_`, and `_` at either end is dropped. `to_file(filename=...)` sets
-another name.
+`id_norm`. The group's file name comes from its name, folded to ASCII and
+lowercased. Each run of characters other than letters, digits and `_` becomes
+`_`, and `_` at either end is dropped. `to_file(filename=...)` sets another
+name.
 
 ### Output
 
@@ -208,10 +198,7 @@ expire. `Validator(refresh=True)` fetches the current schema and replaces it.
 ## Using the parts on their own
 
 `mom_id(text)` cleans an id as described under
-[Ids and file names](#ids-and-file-names). Data that reaches the database
-without the import, for example as an Atom entry, needs this form in `@id`,
-because nothing cleans it there, and its Atom id needs it percent-encoded.
-`mom_id` also gives the id of an existing charter from its shelf mark.
+[Ids and file names](#ids-and-file-names).
 
 `to_cei.dates` reads source dates without a charter. `parse` returns a
 `MomDate`, a `(MomDate, MomDate)` range or `None`, `to_mom_date_value` writes

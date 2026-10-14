@@ -3,9 +3,8 @@
 ## From 0.4 to 0.5
 
 A conversion script written for 0.4 needs the code changes below. The output
-changes matter wherever 0.5 output is compared with or replaces 0.4 output, for
-example charters already in Monasterium. The [changelog](CHANGELOG.md) lists
-every change.
+changes matter wherever 0.5 output is compared with or replaces 0.4 output. The
+[changelog](CHANGELOG.md) lists every change.
 
 ### Code changes
 
@@ -84,24 +83,17 @@ Import `CacheFetchError` from `to_cei.validator`. The schema cache is the file
 #### Ids
 
 `id_norm`, and with it `@id` and the file name of `Charter.to_file()`, is the
-charter id in the form `mom_id` gives it. 0.4 percent-encoded it, and
-Monasterium's import then applied its own rules to that and dropped the `%`
-signs. An id made only of ASCII letters, digits, `_`, `.`, `-` and `~` is the
-same in the 0.4 file, in Monasterium and in 0.5. An id that also holds `/`
-differs only in the 0.4 file. Any other id differs from both:
+charter id in the form `mom_id` gives it, where 0.4 percent-encoded it. An id
+made only of ASCII letters, digits, `_`, `.`, `-` and `~` is the same in both
+versions. Any other id differs:
 
-| `id_text`    | 0.4 file                | Monasterium `@id` from the 0.4 file | 0.5           |
-| ------------ | ----------------------- | ----------------------------------- | ------------- |
-| `1.4.I-001`  | `1.4.I-001`             | `1.4.I-001`                         | `1.4.I-001`   |
-| `A/1`        | `A/1`                   | `A\|1`                              | `A\|1`        |
-| `1307 II 22` | `1307%20II%2022`        | `130720II2022`                      | `1307_II_22`  |
-| `ä1`         | `%C3%A41`               | `C3A41`                             | `ä1`          |
-| `K//1, n° 1` | `K//1%2C%20n%C2%B0%201` | `K\|\|12C20nC2B0201`                | `K\|\|1_n°_1` |
-
-Wherever ids from both versions meet, such as when new files are matched with
-charters already in Monasterium, compare them with this in mind. Passing the
-`@id` Monasterium has as `id_norm` writes that id, because `mom_id` leaves it
-unchanged. Monasterium's Atom ids hold these ids percent-encoded.
+| `id_text`    | 0.4                     | 0.5           |
+| ------------ | ----------------------- | ------------- |
+| `1.4.I-001`  | `1.4.I-001`             | `1.4.I-001`   |
+| `A/1`        | `A/1`                   | `A\|1`        |
+| `1307 II 22` | `1307%20II%2022`        | `1307_II_22`  |
+| `ä1`         | `%C3%A41`               | `ä1`          |
+| `K//1, n° 1` | `K//1%2C%20n%C2%B0%201` | `K\|\|1_n°_1` |
 
 `CharterGroup` raises `ValueError` if two charters have the same `id_norm`.
 
@@ -111,10 +103,8 @@ unchanged. Monasterium's Atom ids hold these ids percent-encoded.
 - A date text generated from `date_value` reads `1457-03-15` or
   `1457-01-01 – 1457-12-31`. A range whose ends are the same day is a
   `cei:date`.
-- Issuers and recipient follow the abstract text in the form of Monasterium's
-  Excel import, as
-  [Matching Monasterium's Excel import](README.md#matching-monasteriums-excel-import)
-  describes.
+- Issuers and recipient follow the abstract text in the form that
+  [Monasterium conventions](README.md#monasterium-conventions) describes.
 - `Seal` writes its parts in the order sigillant, legend, dimensions, material,
   condition. The parts of `cei:seal`, `cei:sealDesc` and `cei:archIdentifier`
   are separated by a space where their texts would otherwise run together.

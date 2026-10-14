@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2]
+
+### Changed
+
+- The docs describe to-cei as a library that simplifies building valid CEI and
+  follows Monasterium's conventions where CEI leaves a choice, and no longer how
+  Monasterium's import, views and Atom ids work. The package description reads
+  "Simplify building valid CEI XML from Python data".
+
 ## [0.5.1]
 
 ### Fixed
